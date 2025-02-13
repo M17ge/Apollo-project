@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apollo Agriculture</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="Landing.css">
+    <!-- Include Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script type="module" src="Landing.js" defer></script>
+</head>
+
+<body class="adminhp">
+    <nav class="navbar">
+        <button class="openbtn" onclick="toggleSidebar()">☰</button>
+        <img src="Apollo_LOGO___Lime.png" alt="Apollo Agriculture Logo" class="logo">
+        <div class="profile-dropdown">
+            <i class="fas fa-user-circle medium-icon" onclick="toggleProfileDropdown()"></i>
+            <div id="profileDropdown" class="dropdown-content">
+                <a href="#" onclick="signOut()">Sign Out</a>
+            </div>
+        </div>
+    </nav>
+    <div id="sidebar" class="sidebar">
+        <a href="#" class="closebtn" onclick="toggleSidebar()">×</a>
+        <ul class="sidebar-menu">
+            <li><a href="#">Home</a></li>
+            <li><a href="#">About</a></li>
+            <li class="dropdown">
+                <button class="menu-btn dropbtn">Product</button>
+                <ul class="dropdown-content">
+                    <li><a href="#">In stock</a></li>
+                    <li><a href="#">Out of stock</a></li>
+                </ul>
+            </li>
+            <li class="dropdown">
+                <button class="menu-btn dropbtn">Services</button>
+                <ul class="dropdown-content">
+                    <li><a href="#">Credit</a></li>
+                    <li><a href="#">Certification</a></li>
+                    <li><a href="#">Delivery</a></li>
+                </ul>
+            </li>
+            <li class="dropdown">
+                <button class="menu-btn dropbtn">Payment</button>
+                <ul class="dropdown-content">
+                    <li><a href="#">Recieved</a></li>
+                    <li><a href="#">Sent</a></li>
+                </ul>
+            </li>
+            <li><a href="#">Requisition</a></li>
+        </ul>
+    </div>
+    <div id="main">
+        <h2>Welcome to My Website</h2>
+        <p>This is a sample website with a toggable sidebar.</p>
+        <div id="items-container"></div>
+    </div>
+</body>
+
+</html>
