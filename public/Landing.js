@@ -23,7 +23,7 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         console.log('User is signed in:', user);
         // Fetch and display items from Firestore
-        fetchItems();
+      //  fetchItems();
     } else {
         console.log('No user is signed in.');
         // Redirect to login page if not authenticated

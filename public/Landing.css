@@ -36,20 +36,24 @@ body.adminhp {
 }
 
 .navbar .dropdown-content {
-    display: none;
+    display: block; /* Always display the dropdown content */
     position: absolute;
     right: 0;
-    background-color: #f9f9f9;
-    min-width: 160px;
+    background-color: #ffffff; /* Light background color */
+    min-width: 200px; /* Increased width for better appearance */
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    border-radius: 8px; /* Rounded corners */
     z-index: 1;
+    font-family: "Arial", sans-serif; /* Different font */
+    font-size: 16px; /* Adjust font size */
 }
 
 .navbar .dropdown-content a {
-    color: black;
+    color: #333333; /* Darker text color */
     padding: 12px 16px;
     text-decoration: none;
     display: block;
+    border-bottom: 1px solid #e6e6e6;
 }
 
 .navbar .dropdown-content a:hover {
@@ -112,19 +116,26 @@ body.adminhp {
 }
 
 .sidebar .sidebar-menu .dropdown-content {
-    display: none;
-    position: absolute;
-    left: 100%;
-    top: 0;
-    background-color: #e6dbc1;
-    min-width: 160px;
+    display: block; /* Always display the dropdown content */
+    position: relative;
+    background-color: #ffffff; /* Light background color */
+    min-width: 200px; /* Increased width for better appearance */
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    border-radius: 8px; /* Rounded corners */
     z-index: 1;
+    font-family: "Arial", sans-serif; /* Different font */
+    font-size: 16px; /* Adjust font size */
+    padding-inline-start: 15px; /* Indent content */
 }
 
 .sidebar .sidebar-menu .dropdown-content li {
     padding: 8px 8px 8px 32px;
-    font-size: 20px;
+    font-size: 16px; /* Adjust font size */
+    color: #333333; /* Darker text color */
+    border-bottom: 1px solid #e6e6e6; /* Divider between items */
+}
+.sidebar .sidebar-menu .dropdown-content li:hover {
+    background-color: #f1f1f1; /* Hover background color */
 }
 
 .sidebar .sidebar-menu .dropdown-content.show {
@@ -137,24 +148,53 @@ body.adminhp {
     right: 25px;
     font-size: 36px;
 }
-
-.openbtn {
-    font-size: 20px;
+.sidebar-icon {
+    position: absolute;
+    top: 10px;
+    left: 8%; /* Adjust this value to position the icon correctly */
+    height: 50px; /* Adjust the size as needed */
     cursor: pointer;
-    background-color: #1B3838;
-    color: white;
-    padding: 10px 15px;
-    border: none;
 }
-
 #main {
     transition: margin-left .5s;
-    padding: 16px;
+    padding: 20px;
+}
+.container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.box {
+    background-color: #ffffff; /* Change background color to white */
+    border: 1px solid #ddd; /* Light border color */
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease; /* Add transition for hover effect */
+    border-radius: 8px; /* Rounded corners */
+}
+
+.box:hover {
+    transform: translateY(-10px); /* Move the box up on hover */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Increase shadow on hover */
+}
+.box1, .box2 {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.box2 {
+    margin-right: 0;
+}
+
+.box3 {
+    width: 100%;
+    height: 200px; /* Adjust the height as needed */
 }
 
 /* Existing styles... */
 
-#items-container {
+/*#items-container {
     margin-top: 20px;
     display: flex;
     flex-wrap: wrap;
@@ -166,7 +206,7 @@ body.adminhp {
     border: 1px solid #ddd;
     border-radius: 5px;
     padding: 15px;
-    width: calc(33.333% - 20px); /* Adjust width as needed */
+    width: calc(33.333% - 20px); Adjust width as needed 
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -180,3 +220,4 @@ body.adminhp {
     font-size: 14px;
     color: #555;
 }
+*/
