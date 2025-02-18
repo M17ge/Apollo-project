@@ -28,51 +28,52 @@
         <a href="#" class="closebtn" onclick="toggleSidebar()">×</a>
         <ul class="sidebar-menu">
             <li><a href="#"><i class="fas fa-home landing-icon"></i> Home</a></li>
-            <li><a href="#"><i class="fas fa-question-circle landing-icon"></i> About</a></li>
+            <li><a href="about.html"><i class="fas fa-question-circle landing-icon"></i> About</a></li>
             <li class="dropdown">
                 <button class="menu-btn dropbtn">Product</button>
                 <ul class="dropdown-content">
-                    <li><a href="#"><i class="fas fa-check"></i> In stock</a></li>
-                    <li><a href="#"><i class="fas fa-times"></i> Out of stock</a></li>
+                    <li><a href="stock.html"><i class="fas fa-check"></i> In stock</a></li>
+                    <li><a href="stock.html"><i class="fas fa-times"></i> Out of stock</a></li>
                 </ul>
             </li>
             <li class="dropdown">
                 <button class="menu-btn dropbtn">Services</button>
                 <ul class="dropdown-content">
-                    <li><a href="#"><i class="fas fa-hand-holding-usd"></i> Credit</a></li>
-                    <li><a href="#"><i class="fas fa-file-signature"></i> Certification</a></li>
-                    <li><a href="#"><i class="fas fa-truck"></i> Delivery</a></li>
+                    <li><a href="credit.html"><i class="fas fa-hand-holding-usd"></i> Credit</a></li>
+                    <li><a href="learning.html"><i class="fas fa-file-signature"></i> Certification</a></li>
+                    <li><a href="delivery.html"><i class="fas fa-truck"></i> Delivery</a></li>
                 </ul>
             </li>
             <li class="dropdown">
                 <button class="menu-btn dropbtn">Payment</button>
                 <ul class="dropdown-content">
-                    <li><a href="#"><i class="fas fa-arrow-circle-down"></i> Received</a></li>
-                    <li><a href="#"><i class="fas fa-arrow-circle-up"></i> Sent</a></li>
+                    <li><a href="payment.html"><i class="fas fa-arrow-circle-down"></i> Received</a></li>
+                    <li><a href="payment.html"><i class="fas fa-arrow-circle-up"></i> Sent</a></li>
                 </ul>
             </li>
-            <li><a href="#"><i class="fas fa-phone-alt landing-icon"></i> Requisition</a></li>
+            <li><a href="supplier.html"><i class="fas fa-phone-alt landing-icon"></i> Requisition</a></li>
         </ul>
     </div>
     <div id="main">
-        <h2>Welcome to My Website</h2>
-        <p>This is a sample website with a toggable sidebar.</p>
-        <!-- <div id="items-container"></div> -->
+        <h2>Welcome to the Apollo Admin dashboard</h2>
+        <p>Here you can see what actions are needed with a color marker <br>
+            <i class="fas fa-circle red-icon"></i> Important
+            <i class="fas fa-circle yellow-icon"></i> Trivial
+            <i class="fas fa-circle green-icon"></i> Completed
+        </p>
         <div class="container">
             <div class="box box1">
-                <h2 class="description-header">Box 1</h2>
-                <p class="description-paragraph">Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam,
-                    quod.</p>
+                <h2 class="description-header">Orders</h2>
+                <p class="description-paragraph">Shows Order numbers including intensity and deliveries</p>
             </div>
             <div class="box box2">
-                <h2 class="description-header">Box 2</h2>
-                <p class="description-paragraph">Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam,
-                    quod.</p>
+                <h2 class="description-header">Payments</h2>
+                <p class="description-paragraph1">Show outgoing payment and ingoing payments and ongoing payments</p>
             </div>
         </div>
         <div class="box box3">
-            <h2 class="description-header">Box 3</h2>
-            <p class="description-paragraph">Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quod.
+            <h2 class="description-header">Reports</h2>
+            <p class="description-paragraph2">Here the admin can see the reports of the company. Here is the link to the reports   
                 <a href="#" class="report-link" title="Reports">
                     <i class="fas fa-file-alt"></i> Reports</a>
             </p>

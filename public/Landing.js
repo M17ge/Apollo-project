@@ -1,6 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-//import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -12,12 +11,9 @@ const firebaseConfig = {
     appId: "1:89948471233:web:1cb2261333c6539a727940",
     measurementId: "G-GR4K54E6FP"
 };
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-//const db = getFirestore(app);
-
 // Check if user is authenticated
 onAuthStateChanged(auth, (user) => {
     if (user) {
@@ -30,20 +26,6 @@ onAuthStateChanged(auth, (user) => {
         window.location.href = 'Login.html';
     }
 });
-
-// Function to fetch items from Firestore
-//async function fetchItems() {
-//   const itemsContainer = document.getElementById('items-container');
-//   const querySnapshot = await getDocs(collection(db, "items"));
-//    querySnapshot.forEach((doc) => {
-//    const item = doc.data();
-//     const itemElement = document.createElement('div');
-//    itemElement.classList.add('item'); // Add this line
-//     itemElement.innerHTML = `<h3>${item.name}</h3><p>${item.description}</p>`;
-//     itemsContainer.appendChild(itemElement);
-//    });
-//  }
-
 // Function to toggle sidebar
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
@@ -57,7 +39,6 @@ function toggleSidebar() {
     }
     console.log('Sidebar toggled');
 }
-
 //Attach toggleSidebar function to the window object to make it accessible globally
 window.toggleSidebar = toggleSidebar;
 // Function to toggle profile dropdown
@@ -69,10 +50,8 @@ function toggleProfileDropdown() {
         dropdown.style.display = 'block';
     }
 }
-
 // Attach toggleProfileDropdown function to the window object to make it accessible globally
 window.toggleProfileDropdown = toggleProfileDropdown;
-
 // Function to sign out
 function signOutUser() {
     signOut(auth).then(() => {
@@ -82,7 +61,6 @@ function signOutUser() {
         console.error('Error signing out:', error);
     });
 }
-
 // Attach signOutUser function to the window object to make it accessible globally
 window.signOut = signOutUser;
 // Function to toggle dropdown content
@@ -94,6 +72,5 @@ function toggleDropdown(id) {
         dropdown.classList.add('show');
     }
 }
-
 // Attach toggleDropdown function to the window object to make it accessible globally
 window.toggleDropdown = toggleDropdown;

@@ -7,7 +7,6 @@ body.adminhp {
     align-items: center;
     justify-content: space-between;
     background-color: #1B3838;
-    padding: 10px 20px;
     color: white;
 }
 
@@ -202,13 +201,22 @@ body.adminhp {
 }
 
 .description-header {
-    font-size: 14px;
+    font-size: 18px;
     color: #123e2f;
+    font-weight: bold;
 }
 
 .description-paragraph {
-    font-size: 10px;
-    color: #333333;
+    font-size: 14px;
+    color: red;
+}
+.description-paragraph1 {
+    font-size: 14px;
+    color: yellow;
+}
+.description-paragraph2 {
+    font-size: 14px;
+    color: green;
 }
 
 .report-link {
@@ -233,4 +241,23 @@ body.adminhp {
 .landing-icon {
     color: rgb(164, 203, 86);
     font-size: 0.9em;
+}
+.red-icon {
+    color: red;
+    margin-right: 5px;
+}
+
+.yellow-icon {
+    color: yellow;
+    margin-right: 5px;
+}
+
+.green-icon {
+    color: green;
+    margin-right: 5px;
+}
+h2 {
+    color: #123e2f;
+    font-size: 24px;
+    margin-bottom: 20px;
 }
