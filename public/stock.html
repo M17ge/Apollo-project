@@ -4,8 +4,60 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock</title>
+    <script type="module" src="stock.js" defer></script>
+    <link rel="stylesheet" href="stock.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    
+    <a href="Landing.html" class="back-icon" title="Back to Landing Page">
+        <i class="fas fa-arrow-left"></i></a>
+    <h2>Stock Management</h2>
+    <form id="stockForm">
+        <input type="text" id="stockId" placeholder="Stock ID" readonly>
+        <input type="text" id="itemName" placeholder="Item Name" required>
+        <input type="number" id="quantity" placeholder="Quantity" required>
+        <input type="text" id="category" placeholder="Category" required>
+        <input type="number" id="price" placeholder="Price" required>
+        <input type="text" id="shortDescription" placeholder="Short Description">
+        <textarea id="longDescription" placeholder="Long Description"></textarea>
+        <button type="submit">Add/Update Item</button>
+    </form>
+    <h3>In Stock</h3>
+    <table id="inStockTable">
+        <thead>
+            <tr>
+                <th>Stock ID</th>
+                <th>Item Name</th>
+                <th>Quantity</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Short Description</th>
+                <th>Long Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be populated here -->
+        </tbody>
+    </table>
+    <h3>Out of Stock</h3>
+    <table id="outOfStockTable">
+        <thead>
+            <tr>
+                <th>Stock ID</th>
+                <th>Item Name</th>
+                <th>Quantity</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Short Description</th>
+                <th>Long Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be populated here -->
+        </tbody>
+    </table>
 </body>
 </html>

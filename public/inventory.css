@@ -1,0 +1,12 @@
+.back-icon {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 24px;
+    color: #2e8b57;
+    text-decoration: none;
+}
+
+.back-icon:hover {
+    color: #3cb371;
+}

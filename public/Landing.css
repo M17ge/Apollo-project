@@ -1,3 +1,8 @@
+html, body {
+    margin: 0;
+    padding: 1px;
+}
+
 body.adminhp {
     font-family: "Lato", sans-serif;
 }
@@ -73,7 +78,7 @@ body.adminhp {
     background-color: #e6dbc1;
     overflow-x: hidden;
     transition: width 0.5s;
-    padding-top: 60px;
+    padding-top: 20px;
 }
 
 .sidebar .sidebar-menu {
@@ -159,7 +164,6 @@ body.adminhp {
 
 #main {
     transition: margin-left .5s;
-    padding: 20px;
 }
 
 .container {

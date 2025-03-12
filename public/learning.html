@@ -3,9 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>learning</title>
+    <title>Learning</title>
+    <script type="module" src="learning.js" defer></script>
+    <link rel="stylesheet" href="learning.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    
+    <a href="Landing.html" class="back-icon" title="Back to Landing Page">
+        <i class="fas fa-arrow-left"></i></a>
+    <h2>Certification Management</h2>
+    <form id="certificationForm">
+        <input type="text" id="userEmail" placeholder="User Email" required>
+        <input type="number" id="amount" placeholder="Amount" required>
+        <input type="text" id="courseName" placeholder="Course Name" required>
+        <input type="date" id="issueDate" placeholder="Issue Date" required>
+        <textarea id="description" placeholder="Description" required></textarea>
+        <label for="status">Status</label>
+        <select id="status" required>
+            <option value="Given">Given</option>
+            <option value="Learning">Learning</option>
+            <option value="Booked">Booked</option>
+        </select>
+        <label for="employeeId">Trainee</label>
+        <input type="text" id="employeeId" placeholder="Employee ID" required>
+        <button type="submit">Add/Update Certification</button>
+    </form>
+    <br>
+    <table id="certificationTable">
+        <thead>
+            <tr>
+                <th>Certification ID</th>
+                <th>User Email</th>
+                <th>Amount</th>
+                <th>Course Name</th>
+                <th>Issue Date</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Trainee</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be populated here -->
+        </tbody>
+    </table>
 </body>
 </html>

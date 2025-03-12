@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="module" src="userman.js" defer></script>
+    <link rel="stylesheet" href="userman.css">
+    <title>User Management</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body>
+    <a href="Landing.html" class="back-icon" title="Back to Landing Page">
+        <i class="fas fa-arrow-left"></i></a>
+    <div id="main">
+        <h2>Welcome to the Apollo Administrator User Management Page</h2>
+        <form id="addUserForm">
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <input type="text" id="userRole" placeholder="User Role" required>
+            <input type="text" id="displayName" placeholder="Display Name">
+            <input type="text" id="phoneNumber" placeholder="Phone Number">
+            <input type="text" id="shortDescription" placeholder="Short Description">
+            <textarea id="longDescription" placeholder="Long Description"></textarea>
+            <input type="text" id="farmSize" placeholder="Farm Size">
+            <input type="text" id="county" placeholder="County">
+            <button type="submit">Add User</button>
+        </form>
+        <form id="updateUserForm">
+            <input type="hidden" id="userId">
+            <input type="text" id="newDisplayName" placeholder="New Display Name">
+            <input type="text" id="newPhoneNumber" placeholder="New Phone Number">
+            <input type="text" id="newUserRole" placeholder="New User Role">
+            <input type="text" id="newShortDescription" placeholder="New Short Description">
+            <textarea id="newLongDescription" placeholder="New Long Description"></textarea>
+            <input type="text" id="newFarmSize" placeholder="New Farm Size">
+            <input type="text" id="newCounty" placeholder="New County">
+            <button type="submit">Update User</button>
+        </form>
+        <form id="removeUserForm">
+            <input type="text" id="removeUserId" placeholder="User ID" required>
+            <button type="submit">Remove User</button>
+        </form>
+        <ul id="userList"></ul>
+    </div>
+</body>
+
+</html>

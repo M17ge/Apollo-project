@@ -1,0 +1,92 @@
+.back-icon {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 24px;
+    color: #2e8b57;
+    text-decoration: none;
+}
+
+.back-icon:hover {
+    color: #3cb371;
+}
+body {
+    font-family: "Lato", sans-serif;
+    background-color: #f0f8f5;
+    color: #123e2f;
+    margin: 0;
+    padding: 20px;
+}
+
+h2 {
+    color: #2e8b57;
+    text-align: center;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+input, select, textarea, button {
+    padding: 10px;
+    border: 1px solid #2e8b57;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #3cb371;
+    box-shadow: 0 0 5px rgba(60, 179, 113, 0.5);
+}
+
+button {
+    background-color: #2e8b57;
+    color: #ffffff;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #3cb371;
+}
+
+button:disabled {
+    background-color: #a9a9a9;
+    cursor: not-allowed;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+th, td {
+    padding: 10px;
+    border: 1px solid #2e8b57;
+    text-align: left;
+}
+
+th {
+    background-color: #2e8b57;
+    color: #ffffff;
+}
+
+td button {
+    background-color: #2e8b57;
+    color: #ffffff;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+td button:hover {
+    background-color: #3cb371;
+}

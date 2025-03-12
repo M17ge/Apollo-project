@@ -4,8 +4,103 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Delivery</title>
+    <script type="module" src="delivery.js" defer></script>
+    <link rel="stylesheet" href="delivery.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    
+    <a href="Landing.html" class="back-icon" title="Back to Landing Page">
+        <i class="fas fa-arrow-left"></i></a>
+    <h2>Booking Management</h2>
+    <form id="bookingForm">
+        <input type="text" id="certificationId" placeholder="Certification ID" required>
+        <input type="text" id="bookingStatus" placeholder="Status" required>
+        <input type="text" id="employeeId" placeholder="Employee ID" required>
+        <input type="date" id="issueDate" placeholder="Issue Date" required>
+        <input type="email" id="userEmail" placeholder="User Email" required>
+        <button type="submit">Add/Update Booking</button>
+    </form>
+    <br>
+    <table id="bookingTable">
+        <thead>
+            <tr>
+                <th>Booking ID</th>
+                <th>Certification ID</th>
+                <th>Status</th>
+                <th>Employee ID</th>
+                <th>Issue Date</th>
+                <th>User Email</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be populated here -->
+        </tbody>
+    </table>
+
+    <h2>Ordering Management</h2>
+    <form id="orderingForm">
+        <input type="email" id="orderUserEmail" placeholder="User Email" required>
+        <input type="number" id="quantity" placeholder="Quantity" required>
+        <input type="date" id="orderDate" placeholder="Date" required>
+        <label for="orderStatus">Order Status</label>
+        <select id="orderStatus" required>
+            <option value="Delivery">Delivery</option>
+            <option value="Returned">Returned</option>
+        </select>
+        <input type="text" id="itemName" placeholder="Item Name" required>
+        <button type="submit">Add/Update Order</button>
+    </form>
+    <br>
+    <table id="orderingTable">
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>User Email</th>
+                <th>Quantity</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Item Name</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be populated here -->
+        </tbody>
+    </table>
+
+    <h2>Delivery Management</h2>
+    <form id="deliveryForm">
+        <input type="text" id="bookingIds" placeholder="Booking IDs (comma separated)" required>
+        <input type="text" id="orderingIds" placeholder="Ordering IDs (comma separated)" required>
+        <input type="text" id="inventoryIds" placeholder="Inventory IDs (comma separated)" required>
+        <input type="text" id="county" placeholder="County" required>
+        <input type="text" id="shortDescription" placeholder="Short Description" required>
+        <input type="text" id="driverId" placeholder="Driver Employee ID" required>
+        <input type="text" id="dispatchManagerId" placeholder="Dispatch Manager Employee ID" required>
+        <input type="text" id="vehiclePlate" placeholder="Vehicle Plate" required>
+        <button type="submit">Add/Update Delivery</button>
+    </form>
+    <br>
+    <table id="deliveryTable">
+        <thead>
+            <tr>
+                <th>Delivery ID</th>
+                <th>Booking IDs</th>
+                <th>Ordering IDs</th>
+                <th>Inventory IDs</th>
+                <th>County</th>
+                <th>Short Description</th>
+                <th>Driver ID</th>
+                <th>Dispatch Manager ID</th>
+                <th>Vehicle Plate</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be populated here -->
+        </tbody>
+    </table>
 </body>
 </html>
