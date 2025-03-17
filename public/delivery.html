@@ -14,8 +14,8 @@
         <i class="fas fa-arrow-left"></i></a>
     <h2>Booking Management</h2>
     <form id="bookingForm">
-        <input type="text" id="certificationId" placeholder="Certification ID" required>
-        <input type="text" id="bookingStatus" placeholder="Status" required>
+        <input type="text" id="certificationName" placeholder="Certification Name" required>
+        <input type="text" id="stockId" placeholder="Stock ID" required>
         <input type="text" id="employeeId" placeholder="Employee ID" required>
         <input type="date" id="issueDate" placeholder="Issue Date" required>
         <input type="email" id="userEmail" placeholder="User Email" required>
@@ -26,8 +26,8 @@
         <thead>
             <tr>
                 <th>Booking ID</th>
-                <th>Certification ID</th>
-                <th>Status</th>
+                <th>Certification Name</th>
+                <th>Stock ID</th>
                 <th>Employee ID</th>
                 <th>Issue Date</th>
                 <th>User Email</th>
@@ -46,8 +46,10 @@
         <input type="date" id="orderDate" placeholder="Date" required>
         <label for="orderStatus">Order Status</label>
         <select id="orderStatus" required>
-            <option value="Delivery">Delivery</option>
-            <option value="Returned">Returned</option>
+            <option value="ordered">Ordered</option>
+            <option value="dispatched">Dispatched</option>
+            <option value="on road">On Road</option>
+            <option value="delivered">Delivered</option>
         </select>
         <input type="text" id="itemName" placeholder="Item Name" required>
         <button type="submit">Add/Update Order</button>
@@ -78,8 +80,15 @@
         <input type="text" id="county" placeholder="County" required>
         <input type="text" id="shortDescription" placeholder="Short Description" required>
         <input type="text" id="driverId" placeholder="Driver Employee ID" required>
-        <input type="text" id="dispatchManagerId" placeholder="Dispatch Manager Employee ID" required>
+        <input type="text" id="dispatchManagerId" placeholder="Dispatch Manager Employee ID" readonly>
         <input type="text" id="vehiclePlate" placeholder="Vehicle Plate" required>
+        <label for="deliveryStatus">Delivery Status</label>
+        <select id="deliveryStatus" required>
+            <option value="ordered">Ordered</option>
+            <option value="dispatched">Dispatched</option>
+            <option value="on road">On Road</option>
+            <option value="delivered">Delivered</option>
+        </select>
         <button type="submit">Add/Update Delivery</button>
     </form>
     <br>
@@ -95,6 +104,7 @@
                 <th>Driver ID</th>
                 <th>Dispatch Manager ID</th>
                 <th>Vehicle Plate</th>
+                <th>Delivery Status</th>
                 <th>Actions</th>
             </tr>
         </thead>

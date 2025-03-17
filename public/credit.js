@@ -1,20 +1,37 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import{ getAuth, onAuthStateChanged} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
+    authDomain: "apollo-project-9c70b.firebaseapp.com",
+    projectId: "apollo-project-9c70b",
+    storageBucket: "apollo-project-9c70b.firebasestorage.app",
+    messagingSenderId: "89948471233",
+    appId: "1:89948471233:web:1cb2261333c6539a727940",
+    measurementId: "G-GR4K54E6FP"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getFirestore(app);
 
+document.addEventListener('DOMContentLoaded', () => {
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            console.log("User is logged in:", user);
+            // Set the manager ID in the form field
+            document.getElementById('managerID').value = user.uid;
+            initializeForms();
+        } else {
+            console.log("No user is logged in");
+            // Redirect to login page
+            window.location.href = "login.html";
+        }
+    });
+});
 // Fetch and display credit data
 async function fetchCreditData() {
     const querySnapshot = await getDocs(collection(db, "credits"));

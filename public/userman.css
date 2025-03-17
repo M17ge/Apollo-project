@@ -1,105 +1,102 @@
 body {
-    font-family: "Lato", sans-serif;
-    background-color: #f0f8f5;
-    color: #123e2f;
-    margin: 0;
-    padding: 0;
+    background-color: #e0f7fa;
+    font-family: Arial, sans-serif;
+    color: #004d40;
+}
+
+h1, h2 {
+    color: #00796b;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+table, th, td {
+    border: 1px solid #004d40;
+}
+
+th, td {
+    padding: 10px;
+    text-align: left;
+}
+
+th {
+    background-color: #004d40;
+    color: white;
+}
+
+button {
+    background-color: #00796b;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #004d40;
+}
+
+.back-icon {
+    display: inline-block;
+    margin: 10px 0;
+    color: #004d40;
+    text-decoration: none;
+}
+
+.back-icon:hover {
+    color: #00796b;
 }
 
 #main {
-    padding: 20px;
-    max-width: 800px;
-    margin: 0 auto;
-    background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    position: relative;
-}
-
-h2 {
-    color: #2e8b57;
-    text-align: center;
+    margin: 20px;
 }
 
 form {
     display: flex;
     flex-direction: column;
-    gap: 10px;
     margin-bottom: 20px;
 }
 
-input, textarea, button {
+form label {
+    margin-top: 10px;
+}
+
+form input, form select, form textarea, form button {
+    margin-top: 5px;
     padding: 10px;
-    border: 1px solid #2e8b57;
+    border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 16px;
 }
 
-input:focus, textarea:focus {
-    outline: none;
-    border-color: #3cb371;
-    box-shadow: 0 0 5px rgba(60, 179, 113, 0.5);
-}
-
-button {
-    background-color: #2e8b57;
-    color: #ffffff;
+form button {
+    background-color: #00796b;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 16px;
     cursor: pointer;
-    transition: background-color 0.3s;
 }
 
-button:hover {
-    background-color: #3cb371;
-}
-
-button:disabled {
-    background-color: #a9a9a9;
-    cursor: not-allowed;
-}
-
-textarea {
-    resize: vertical;
-}
-
-#addUserForm, #updateUserForm, #removeUserForm {
-    background-color: #f0f8f5;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-}
-
-#addUserForm h3, #updateUserForm h3, #removeUserForm h3 {
-    color: #2e8b57;
-    margin-bottom: 10px;
-}
-
-#addUserForm button, #updateUserForm button, #removeUserForm button {
-    align-self: flex-start;
+form button:hover {
+    background-color: #004d40;
 }
 
 #userList {
     list-style-type: none;
     padding: 0;
-    margin: 20px 0;
 }
 
 #userList li {
-    background-color: #e6f7e6;
+    background-color: #ffffff;
+    border: 1px solid #004d40;
     padding: 10px;
-    border: 1px solid #2e8b57;
+    margin-bottom: 5px;
     border-radius: 4px;
-    margin-bottom: 10px;
-}
-
-.back-icon {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    font-size: 24px;
-    color: #2e8b57;
-    text-decoration: none;
-}
-
-.back-icon:hover {
-    color: #3cb371;
 }

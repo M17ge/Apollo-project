@@ -1,21 +1,37 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
+    authDomain: "apollo-project-9c70b.firebaseapp.com",
+    projectId: "apollo-project-9c70b",
+    storageBucket: "apollo-project-9c70b.firebasestorage.app",
+    messagingSenderId: "89948471233",
+    appId: "1:89948471233:web:1cb2261333c6539a727940",
+    measurementId: "G-GR4K54E6FP"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+document.addEventListener('DOMContentLoaded', () => {
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            console.log("User is logged in:", user);
+            // Set the manager ID in the form field
+            document.getElementById('managerID').value = user.uid;
+            initializeForms();
+        } else {
+            console.log("No user is logged in");
+            // Redirect to login page
+            window.location.href = "login.html";
+        }
+    });
+});
 
 // Add a new user
 async function addUser(email, password, additionalData) {
@@ -34,6 +50,8 @@ async function addUser(email, password, additionalData) {
             userRole: additionalData.userRole
         });
         console.log("User created with ID: ", user.uid);
+        document.getElementById('userId').value = user.uid;
+        fetchUsers(); // Refresh the user list
     } catch (e) {
         console.error("Error adding user: ", e);
     }
@@ -43,6 +61,7 @@ async function addUser(email, password, additionalData) {
 async function updateUser(userId, updatedData) {
     const userRef = doc(db, "users", userId);
     await updateDoc(userRef, updatedData);
+    fetchUsers(); // Refresh the user list
 }
 
 // Delete a user
@@ -51,18 +70,26 @@ async function removeUser(userId) {
     await deleteDoc(userRef);
     const user = auth.currentUser;
     await deleteUser(user);
+    fetchUsers(); // Refresh the user list
 }
 
 // Fetch and display user data
 async function fetchUsers() {
     const querySnapshot = await getDocs(collection(db, "users"));
-    const userList = document.getElementById('userList');
-    userList.innerHTML = ''; // Clear existing data
+    const userTableBody = document.getElementById('userTable').getElementsByTagName('tbody')[0];
+    userTableBody.innerHTML = ''; // Clear existing data
     querySnapshot.forEach((doc) => {
         const user = doc.data();
-        const userItem = document.createElement('li');
-        userItem.textContent = `Name: ${user.displayName}, Email: ${user.email}, Phone: ${user.phoneNumber}, Short Description: ${user.shortDescription}, Long Description: ${user.longDescription}, Farm Size: ${user.farmSize}, County: ${user.county}, Role: ${user.userRole}`;
-        userList.appendChild(userItem);
+        const row = userTableBody.insertRow();
+        row.insertCell(0).textContent = user.uid;
+        row.insertCell(1).textContent = user.email;
+        row.insertCell(2).textContent = user.displayName;
+        row.insertCell(3).textContent = user.phoneNumber;
+        row.insertCell(4).textContent = user.shortDescription;
+        row.insertCell(5).textContent = user.longDescription;
+        row.insertCell(6).textContent = user.farmSize;
+        row.insertCell(7).textContent = user.county;
+        row.insertCell(8).textContent = user.userRole;
     });
 }
 

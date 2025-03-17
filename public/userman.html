@@ -17,33 +17,85 @@
     <div id="main">
         <h2>Welcome to the Apollo Administrator User Management Page</h2>
         <form id="addUserForm">
-            <input type="email" id="email" placeholder="Email" required>
-            <input type="password" id="password" placeholder="Password" required>
-            <input type="text" id="userRole" placeholder="User Role" required>
-            <input type="text" id="displayName" placeholder="Display Name">
-            <input type="text" id="phoneNumber" placeholder="Phone Number">
-            <input type="text" id="shortDescription" placeholder="Short Description">
-            <textarea id="longDescription" placeholder="Long Description"></textarea>
-            <input type="text" id="farmSize" placeholder="Farm Size">
-            <input type="text" id="county" placeholder="County">
+            <label for="userId">User ID:</label>
+            <input type="text" id="userId" readonly>
+            <label for="email">Email:</label>
+            <input type="email" id="email" required>
+            <label for="password">Password:</label>
+            <input type="password" id="password" required>
+            <label for="userRole">User Role:</label>
+            <select id="userRole" required>
+                <option value="Farmer">Farmer</option>
+                <option value="Admin">Admin</option>
+                <option value="Driver">Driver</option>
+                <option value="Dispatch Manager">Dispatch Manager</option>
+                <option value="Inventory Manager">Inventory Manager</option>
+                <option value="Finance Manager">Finance Manager</option>
+                <option value="Trainer">Trainer</option>
+            </select>
+            <label for="displayName">Display Name:</label>
+            <input type="text" id="displayName">
+            <label for="phoneNumber">Phone Number:</label>
+            <input type="text" id="phoneNumber">
+            <label for="shortDescription">Short Description:</label>
+            <input type="text" id="shortDescription">
+            <label for="longDescription">Long Description:</label>
+            <textarea id="longDescription"></textarea>
+            <label for="farmSize">Farm Size:</label>
+            <input type="text" id="farmSize">
+            <label for="county">County:</label>
+            <input type="text" id="county">
             <button type="submit">Add User</button>
         </form>
         <form id="updateUserForm">
-            <input type="hidden" id="userId">
-            <input type="text" id="newDisplayName" placeholder="New Display Name">
-            <input type="text" id="newPhoneNumber" placeholder="New Phone Number">
-            <input type="text" id="newUserRole" placeholder="New User Role">
-            <input type="text" id="newShortDescription" placeholder="New Short Description">
-            <textarea id="newLongDescription" placeholder="New Long Description"></textarea>
-            <input type="text" id="newFarmSize" placeholder="New Farm Size">
-            <input type="text" id="newCounty" placeholder="New County">
+            <label for="newDisplayName">New Display Name:</label>
+            <input type="text" id="newDisplayName">
+            <label for="newPhoneNumber">New Phone Number:</label>
+            <input type="text" id="newPhoneNumber">
+            <label for="newUserRole">New User Role:</label>
+            <select id="newUserRole">
+                <option value="Farmer">Farmer</option>
+                <option value="Admin">Admin</option>
+                <option value="Driver">Driver</option>
+                <option value="Dispatch Manager">Dispatch Manager</option>
+                <option value="Inventory Manager">Inventory Manager</option>
+                <option value="Finance Manager">Finance Manager</option>
+                <option value="Trainer">Trainer</option>
+            </select>
+            <label for="newShortDescription">New Short Description:</label>
+            <input type="text" id="newShortDescription">
+            <label for="newLongDescription">New Long Description:</label>
+            <textarea id="newLongDescription"></textarea>
+            <label for="newFarmSize">New Farm Size:</label>
+            <input type="text" id="newFarmSize">
+            <label for="newCounty">New County:</label>
+            <input type="text" id="newCounty">
             <button type="submit">Update User</button>
         </form>
         <form id="removeUserForm">
-            <input type="text" id="removeUserId" placeholder="User ID" required>
+            <label for="removeUserId">User ID:</label>
+            <input type="text" id="removeUserId" required>
             <button type="submit">Remove User</button>
         </form>
-        <ul id="userList"></ul>
+        <h2>User List</h2>
+        <table id="userTable">
+            <thead>
+                <tr>
+                    <th>User ID</th>
+                    <th>Email</th>
+                    <th>Display Name</th>
+                    <th>Phone Number</th>
+                    <th>Short Description</th>
+                    <th>Long Description</th>
+                    <th>Farm Size</th>
+                    <th>County</th>
+                    <th>User Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- User data will be populated here -->
+            </tbody>
+        </table>
     </div>
 </body>
 

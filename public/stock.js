@@ -1,19 +1,69 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
-// Your web app's Firebase configuration
+// Firebase configuration
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
+    authDomain: "apollo-project-9c70b.firebaseapp.com",
+    projectId: "apollo-project-9c70b",
+    storageBucket: "apollo-project-9c70b.firebasestorage.app",
+    messagingSenderId: "89948471233",
+    appId: "1:89948471233:web:1cb2261333c6539a727940",
+    measurementId: "G-GR4K54E6FP"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getFirestore(app);
+
+document.addEventListener('DOMContentLoaded', () => {
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            console.log("User is logged in:", user);
+            initializeForms();
+            fetchStock();
+        } else {
+            console.log("No user is logged in");
+            // Redirect to login page
+            window.location.href = "login.html";
+        }
+    });
+});
+
+function initializeForms() {
+    // Stock form submission
+    document.getElementById('stockForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const itemName = document.getElementById('itemName').value;
+        const quantity = document.getElementById('quantity').value;
+        const category = document.getElementById('category').value;
+        const price = document.getElementById('price').value;
+        const shortDescription = document.getElementById('shortDescription').value;
+        const longDescription = document.getElementById('longDescription').value;
+        const imageAsset = document.getElementById('imageAsset').value;
+
+        try {
+            const stockRef = doc(collection(db, 'stock'));
+            const stockId = stockRef.id;
+            await addDoc(stockRef, {
+                stockId,
+                itemName,
+                quantity,
+                category,
+                price,
+                shortDescription,
+                longDescription,
+                imageAsset
+            });
+            console.log("Stock item added with ID: ", stockId);
+            fetchStock(); // Refresh the stock list
+        } catch (e) {
+            console.error("Error adding stock item: ", e);
+        }
+    });
+}
 
 // Fetch and display stock data
 async function fetchStock() {
@@ -22,73 +72,24 @@ async function fetchStock() {
     const outOfStockTableBody = document.getElementById('outOfStockTable').getElementsByTagName('tbody')[0];
     inStockTableBody.innerHTML = ''; // Clear existing data
     outOfStockTableBody.innerHTML = ''; // Clear existing data
+
     querySnapshot.forEach((doc) => {
-        const item = doc.data();
+        const stock = doc.data();
         const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${item.itemName}</td>
-            <td>${item.quantity}</td>
-            <td>${item.category}</td>
-            <td>${item.price}</td>
-            <td>${item.shortDescription}</td>
-            <td>${item.longDescription}</td>
-            <td>
-                <button onclick="editItem('${doc.id}', '${item.itemName}', ${item.quantity}, '${item.category}', ${item.price}, '${item.shortDescription}', '${item.longDescription}')">Edit</button>
-                <button onclick="deleteItem('${doc.id}')">Delete</button>
-            </td>
-        `;
-        if (item.quantity === 0) {
-            outOfStockTableBody.appendChild(row);
-        } else {
+        row.insertCell(0).textContent = stock.stockId;
+        row.insertCell(1).textContent = stock.itemName;
+        row.insertCell(2).textContent = stock.quantity;
+        row.insertCell(3).textContent = stock.category;
+        row.insertCell(4).textContent = stock.price;
+        row.insertCell(5).textContent = stock.shortDescription;
+        row.insertCell(6).textContent = stock.longDescription;
+        row.insertCell(7).textContent = stock.imageAsset;
+        row.insertCell(8).textContent = 'Actions'; // Placeholder for actions
+
+        if (stock.quantity > 0) {
             inStockTableBody.appendChild(row);
+        } else {
+            outOfStockTableBody.appendChild(row);
         }
     });
 }
-
-// Add or update stock item
-async function addOrUpdateItem(itemId, itemName, quantity, category, price, shortDescription, longDescription) {
-    if (itemId) {
-        const itemRef = doc(db, "stock", itemId);
-        await updateDoc(itemRef, { itemName, quantity, category, price, shortDescription, longDescription });
-    } else {
-        // Generate a unique stock ID
-        const stockId = 'stock-' + Date.now();
-        await addDoc(collection(db, "stock"), { stockId, itemName, quantity, category, price, shortDescription, longDescription });
-    }
-    fetchStock();
-}
-
-// Delete stock item
-async function deleteItem(itemId) {
-    await deleteDoc(doc(db, "stock", itemId));
-    fetchStock();
-}
-
-// Edit stock item
-function editItem(itemId, itemName, quantity, category, price, shortDescription, longDescription) {
-    document.getElementById('itemName').value = itemName;
-    document.getElementById('quantity').value = quantity;
-    document.getElementById('category').value = category;
-    document.getElementById('price').value = price;
-    document.getElementById('shortDescription').value = shortDescription;
-    document.getElementById('longDescription').value = longDescription;
-    document.getElementById('stockForm').dataset.itemId = itemId;
-}
-
-// Event listener for form submission
-document.getElementById('stockForm').addEventListener('submit', function (event) {
-    event.preventDefault();
-    const itemId = event.target.dataset.itemId || null;
-    const itemName = document.getElementById('itemName').value;
-    const quantity = parseInt(document.getElementById('quantity').value);
-    const category = document.getElementById('category').value;
-    const price = parseFloat(document.getElementById('price').value);
-    const shortDescription = document.getElementById('shortDescription').value;
-    const longDescription = document.getElementById('longDescription').value;
-    addOrUpdateItem(itemId, itemName, quantity, category, price, shortDescription, longDescription);
-    event.target.reset();
-    delete event.target.dataset.itemId;
-});
-
-// Fetch and display stock data on page load
-document.addEventListener('DOMContentLoaded', fetchStock);
