@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
 // Your web app's Firebase configuration
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("User is logged in:", user);
             // Set the manager ID in the form field
             document.getElementById('managerID').value = user.uid;
-            initializeForms();
+            fetchUsers(); // Fetch users on page load
         } else {
             console.log("No user is logged in");
             // Redirect to login page
@@ -59,9 +59,13 @@ async function addUser(email, password, additionalData) {
 
 // Update user profile
 async function updateUser(userId, updatedData) {
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, updatedData);
-    fetchUsers(); // Refresh the user list
+    try {
+        const userRef = doc(db, "users", userId);
+        await updateDoc(userRef, updatedData);
+        fetchUsers(); // Refresh the user list
+    } catch (error) {
+        console.error("Error updating user: ", error);
+    }
 }
 
 // Delete a user

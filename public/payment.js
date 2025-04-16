@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -15,37 +15,22 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
             console.log("User is logged in:", user);
-            // Set the manager ID in the form field
             document.getElementById('managerID').value = user.uid;
-            initializeForms();
+            fetchPayments();
         } else {
             console.log("No user is logged in");
             // Redirect to login page
             window.location.href = "login.html";
         }
     });
-});
 
-function initializeForms() {
-    // Generate and set payment ID for payment form
-    (async () => {
-        try {
-            const paymentRef = doc(collection(db, 'payments'));
-            const newPaymentID = paymentRef.id;
-            document.getElementById('paymentID').value = newPaymentID;
-        } catch (error) {
-            console.error("Error generating payment ID: ", error);
-        }
-    })();
-
-    // Payment form submission
     document.getElementById('paymentForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const paymentID = document.getElementById('paymentID').value;
@@ -56,54 +41,86 @@ function initializeForms() {
         const to = document.getElementById('to').value;
         const invoiceID = document.getElementById('invoiceID').value;
         const date = document.getElementById('date').value;
+        addOrUpdatePayment(paymentID, managerID, paymentMethod, creditID, from, to, invoiceID, date);
+        e.target.reset();
+        delete e.target.dataset.paymentID;
+    });
+});
 
-        try {
-            const docRef = await addDoc(collection(db, "payments"), {
-                paymentID,
-                managerID,
-                paymentMethod,
-                creditID,
-                from,
-                to,
-                invoiceID,
-                date
-            });
-            console.log("Document written with ID: ", docRef.id);
-            // Optionally, you can clear the form fields here
-            if (from === 'Farmer' && to === 'Apollo') {
-                addRowToTable('deliveredTable', docRef.id, managerID, paymentMethod, creditID, from, to, invoiceID, date);
-            } else if (from === 'Apollo' && to === 'Supplier') {
-                addRowToTable('sentTable', docRef.id, managerID, paymentMethod, creditID, from, to, invoiceID, date);
-            }
-        } catch (e) {
-            console.error("Error adding document: ", e);
+// Fetch and display payments
+async function fetchPayments() {
+    const querySnapshot = await getDocs(collection(db, "payments"));
+    const deliveredTableBody = document.getElementById('deliveredTable').getElementsByTagName('tbody')[0];
+    const sentTableBody = document.getElementById('sentTable').getElementsByTagName('tbody')[0];
+    deliveredTableBody.innerHTML = ''; // Clear existing data
+    sentTableBody.innerHTML = ''; // Clear existing data
+
+    querySnapshot.forEach((doc) => {
+        const payment = doc.data();
+        const row = document.createElement('tr');
+        if (payment.paymentMethod === 'credit') {
+            row.innerHTML = `
+                <td>${doc.id}</td>
+                <td>${payment.managerID}</td>
+                <td>${payment.paymentMethod}</td>
+                <td>${payment.creditID}</td>
+                <td>${payment.from}</td>
+                <td>${payment.to}</td>
+                <td>${new Date(payment.date.seconds * 1000).toLocaleDateString()}</td>
+                <td>
+                    <button onclick="editPayment('${doc.id}', '${payment.managerID}', '${payment.paymentMethod}', '${payment.creditID}', '${payment.from}', '${payment.to}', '${payment.invoiceID}', '${new Date(payment.date.seconds * 1000).toISOString().split('T')[0]}')">Edit</button>
+                    <button onclick="deletePayment('${doc.id}')">Delete</button>
+                </td>
+            `;
+            deliveredTableBody.appendChild(row);
+        } else {
+            row.innerHTML = `
+                <td>${doc.id}</td>
+                <td>${payment.managerID}</td>
+                <td>${payment.paymentMethod}</td>
+                <td>${payment.from}</td>
+                <td>${payment.to}</td>
+                <td>${payment.invoiceID}</td>
+                <td>${new Date(payment.date.seconds * 1000).toLocaleDateString()}</td>
+                <td>
+                    <button onclick="editPayment('${doc.id}', '${payment.managerID}', '${payment.paymentMethod}', '${payment.creditID}', '${payment.from}', '${payment.to}', '${payment.invoiceID}', '${new Date(payment.date.seconds * 1000).toISOString().split('T')[0]}')">Edit</button>
+                    <button onclick="deletePayment('${doc.id}')">Delete</button>
+                </td>
+            `;
+            sentTableBody.appendChild(row);
         }
     });
-
-    // Fetch and display payment data
-    (async () => {
-        const querySnapshot = await getDocs(collection(db, "payments"));
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (data.from === 'Farmer' && data.to === 'Apollo') {
-                addRowToTable('deliveredTable', doc.id, data.managerID, data.paymentMethod, data.creditID, data.from, data.to, data.invoiceID, data.date);
-            } else if (data.from === 'Apollo' && data.to === 'Supplier') {
-                addRowToTable('sentTable', doc.id, data.managerID, data.paymentMethod, data.creditID, data.from, data.to, data.invoiceID, data.date);
-            }
-        });
-    })();
 }
 
-function addRowToTable(tableID, paymentID, managerID, paymentMethod, creditID, from, to, invoiceID, date) {
-    const tableBody = document.getElementById(tableID).getElementsByTagName('tbody')[0];
-    const row = tableBody.insertRow();
-    row.insertCell(0).textContent = paymentID;
-    row.insertCell(1).textContent = managerID;
-    row.insertCell(2).textContent = paymentMethod;
-    row.insertCell(3).textContent = creditID;
-    row.insertCell(4).textContent = from;
-    row.insertCell(5).textContent = to;
-    row.insertCell(6).textContent = invoiceID;
-    row.insertCell(7).textContent = date;
-    row.insertCell(8).textContent = 'Actions'; // Placeholder for actions
+// Add or update payment entry
+async function addOrUpdatePayment(paymentID, managerID, paymentMethod, creditID, from, to, invoiceID, date) {
+    if (paymentID) {
+        const paymentRef = doc(db, "payments", paymentID);
+        await updateDoc(paymentRef, { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
+    } else {
+        await addDoc(collection(db, "payments"), { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
+    }
+    fetchPayments();
 }
+
+// Delete payment entry
+async function deletePayment(paymentID) {
+    await deleteDoc(doc(db, "payments", paymentID));
+    fetchPayments();
+}
+
+// Edit payment entry
+function editPayment(paymentID, managerID, paymentMethod, creditID, from, to, invoiceID, date) {
+    document.getElementById('paymentID').value = paymentID;
+    document.getElementById('managerID').value = managerID;
+    document.getElementById('paymentMethod').value = paymentMethod;
+    document.getElementById('creditID').value = creditID;
+    document.getElementById('from').value = from;
+    document.getElementById('to').value = to;
+    document.getElementById('invoiceID').value = invoiceID;
+    document.getElementById('date').value = date;
+    document.getElementById('paymentForm').dataset.paymentID = paymentID;
+}
+
+// Fetch and display payments on page load
+document.addEventListener('DOMContentLoaded', fetchPayments);
