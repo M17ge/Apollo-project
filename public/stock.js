@@ -45,9 +45,9 @@ function initializeForms() {
         const imageAsset = document.getElementById('imageAsset').value;
 
         try {
-            const stockRef = doc(collection(db, 'stock'));
+            const stockRef = doc(collection(db, 'Stock'));
             const stockId = stockRef.id;
-            await addDoc(stockRef, {
+            await addDoc(collection(db, 'Stock'), {
                 stockId,
                 itemName,
                 quantity,
@@ -60,36 +60,42 @@ function initializeForms() {
             console.log("Stock item added with ID: ", stockId);
             fetchStock(); // Refresh the stock list
         } catch (e) {
-            console.error("Error adding stock item: ", e);
+            console.error("Error adding stock item: ", e.code, e.message);
+            alert(`An error occurred while adding the stock item: ${e.message}`);
         }
     });
 }
 
 // Fetch and display stock data
 async function fetchStock() {
-    const querySnapshot = await getDocs(collection(db, "stock"));
-    const inStockTableBody = document.getElementById('inStockTable').getElementsByTagName('tbody')[0];
-    const outOfStockTableBody = document.getElementById('outOfStockTable').getElementsByTagName('tbody')[0];
-    inStockTableBody.innerHTML = ''; // Clear existing data
-    outOfStockTableBody.innerHTML = ''; // Clear existing data
+    try {
+        const querySnapshot = await getDocs(collection(db, "Stock"));
+        const inStockTableBody = document.getElementById('inStockTable').getElementsByTagName('tbody')[0];
+        const outOfStockTableBody = document.getElementById('outOfStockTable').getElementsByTagName('tbody')[0];
+        inStockTableBody.innerHTML = ''; // Clear existing data
+        outOfStockTableBody.innerHTML = ''; // Clear existing data
 
-    querySnapshot.forEach((doc) => {
-        const stock = doc.data();
-        const row = document.createElement('tr');
-        row.insertCell(0).textContent = stock.stockId;
-        row.insertCell(1).textContent = stock.itemName;
-        row.insertCell(2).textContent = stock.quantity;
-        row.insertCell(3).textContent = stock.category;
-        row.insertCell(4).textContent = stock.price;
-        row.insertCell(5).textContent = stock.shortDescription;
-        row.insertCell(6).textContent = stock.longDescription;
-        row.insertCell(7).textContent = stock.imageAsset;
-        row.insertCell(8).textContent = 'Actions'; // Placeholder for actions
+        querySnapshot.forEach((doc) => {
+            const stock = doc.data();
+            const row = document.createElement('tr');
+            row.insertCell(0).textContent = stock.stockId;
+            row.insertCell(1).textContent = stock.itemName;
+            row.insertCell(2).textContent = stock.quantity;
+            row.insertCell(3).textContent = stock.category;
+            row.insertCell(4).textContent = stock.price;
+            row.insertCell(5).textContent = stock.shortDescription;
+            row.insertCell(6).textContent = stock.longDescription;
+            row.insertCell(7).textContent = stock.imageAsset;
+            row.insertCell(8).textContent = 'Actions'; // Placeholder for actions
 
-        if (stock.quantity > 0) {
-            inStockTableBody.appendChild(row);
-        } else {
-            outOfStockTableBody.appendChild(row);
-        }
-    });
+            if (stock.quantity > 0) {
+                inStockTableBody.appendChild(row);
+            } else {
+                outOfStockTableBody.appendChild(row);
+            }
+        });
+    } catch (e) {
+        console.error("Error fetching stock data: ", e.code, e.message);
+        alert(`An error occurred while fetching stock data: ${e.message}`);
+    }
 }

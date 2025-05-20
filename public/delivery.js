@@ -28,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchDeliveryData();
         } else {
             console.log("No user is logged in");
-            // Redirect to login page
             window.location.href = "login.html";
         }
     });
@@ -36,130 +35,175 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Fetch and display booking data
 async function fetchBookingData() {
-    const querySnapshot = await getDocs(collection(db, "bookings"));
-    const bookingTableBody = document.getElementById('bookingTable').getElementsByTagName('tbody')[0];
-    bookingTableBody.innerHTML = ''; // Clear existing data
-    querySnapshot.forEach((doc) => {
-        const booking = doc.data();
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${doc.id}</td>
-            <td>${booking.certificationId}</td>
-            <td>${booking.trainerName}</td>
-            <td>${booking.employeeId}</td>
-            <td>${new Date(booking.issueDate.seconds * 1000).toLocaleDateString()}</td>
-            <td>${booking.userEmail}</td>
-            <td>
-                <button onclick="editBooking('${doc.id}', '${booking.certificationId}', '${booking.trainerName}', '${booking.employeeId}', '${new Date(booking.issueDate.seconds * 1000).toISOString().split('T')[0]}', '${booking.userEmail}')">Edit</button>
-                <button onclick="deleteBooking('${doc.id}')">Delete</button>
-            </td>
-        `;
-        bookingTableBody.appendChild(row);
-    });
+    try {
+        const querySnapshot = await getDocs(collection(db, "Bookings"));
+        const bookingTableBody = document.getElementById('bookingTable').getElementsByTagName('tbody')[0];
+        bookingTableBody.innerHTML = '';
+        querySnapshot.forEach((doc) => {
+            const booking = doc.data();
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${doc.id}</td>
+                <td>${booking.certificationId}</td>
+                <td>${booking.trainerName}</td>
+                <td>${booking.employeeId}</td>
+                <td>${booking.issueDate && booking.issueDate.seconds ? new Date(booking.issueDate.seconds * 1000).toLocaleDateString() : ''}</td>
+                <td>${booking.userEmail}</td>
+                <td>
+                    <button onclick="editBooking('${doc.id}', '${booking.certificationId}', '${booking.trainerName}', '${booking.employeeId}', '${booking.issueDate && booking.issueDate.seconds ? new Date(booking.issueDate.seconds * 1000).toISOString().split('T')[0] : ''}', '${booking.userEmail}')">Edit</button>
+                    <button onclick="deleteBooking('${doc.id}')">Delete</button>
+                </td>
+            `;
+            bookingTableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error("Error fetching bookings: ", error.code, error.message);
+        alert(`An error occurred while fetching bookings: ${error.message}`);
+    }
 }
 
 // Fetch and display ordering data
 async function fetchOrderingData() {
-    const querySnapshot = await getDocs(collection(db, "orders"));
-    const orderingTableBody = document.getElementById('orderingTable').getElementsByTagName('tbody')[0];
-    orderingTableBody.innerHTML = ''; // Clear existing data
-    querySnapshot.forEach((doc) => {
-        const order = doc.data();
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${doc.id}</td>
-            <td>${order.orderUserEmail}</td>
-            <td>${order.quantity}</td>
-            <td>${order.orderDate}</td>
-            <td>${order.orderStatus}</td>
-            <td>${order.itemList}</td>
-            <td>${order.totalPrice}</td>
-            <td>
-                <button onclick="editOrder('${doc.id}', '${order.orderUserEmail}', ${order.quantity}, '${order.orderDate}', '${order.orderStatus}', '${order.itemList}', ${order.totalPrice})">Edit</button>
-                <button onclick="deleteOrder('${doc.id}')">Delete</button>
-            </td>
-        `;
-        orderingTableBody.appendChild(row);
-    });
+    try {
+        const querySnapshot = await getDocs(collection(db, "Orders"));
+        const orderingTableBody = document.getElementById('orderingTable').getElementsByTagName('tbody')[0];
+        orderingTableBody.innerHTML = '';
+        querySnapshot.forEach((doc) => {
+            const order = doc.data();
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${doc.id}</td>
+                <td>${order.orderUserEmail}</td>
+                <td>${order.quantity}</td>
+                <td>${order.orderDate}</td>
+                <td>${order.orderStatus}</td>
+                <td>${order.itemList}</td>
+                <td>${order.totalPrice}</td>
+                <td>
+                    <button onclick="editOrder('${doc.id}', '${order.orderUserEmail}', ${order.quantity}, '${order.orderDate}', '${order.orderStatus}', '${order.itemList}', ${order.totalPrice})">Edit</button>
+                    <button onclick="deleteOrder('${doc.id}')">Delete</button>
+                </td>
+            `;
+            orderingTableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error("Error fetching orders: ", error.code, error.message);
+        alert(`An error occurred while fetching orders: ${error.message}`);
+    }
 }
 
 // Fetch and display delivery data
 async function fetchDeliveryData() {
-    const querySnapshot = await getDocs(collection(db, "deliveries"));
-    const deliveryTableBody = document.getElementById('deliveryTable').getElementsByTagName('tbody')[0];
-    deliveryTableBody.innerHTML = ''; // Clear existing data
-    querySnapshot.forEach((doc) => {
-        const delivery = doc.data();
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${doc.id}</td>
-            <td>${delivery.bookingIds}</td>
-            <td>${delivery.orderingIds}</td>
-            <td>${delivery.inventoryIds}</td>
-            <td>${delivery.county}</td>
-            <td>${delivery.address}</td>
-            <td>${delivery.driverId}</td>
-            <td>${delivery.dispatchManagerId}</td>
-            <td>${delivery.vehiclePlate}</td>
-            <td>${delivery.deliveryStatus}</td>
-            <td>
-                <button onclick="editDelivery('${doc.id}', '${delivery.bookingIds}', '${delivery.orderingIds}', '${delivery.inventoryIds}', '${delivery.county}', '${delivery.address}', '${delivery.driverId}', '${delivery.dispatchManagerId}', '${delivery.vehiclePlate}', '${delivery.deliveryStatus}')">Edit</button>
-                <button onclick="deleteDelivery('${doc.id}')">Delete</button>
-            </td>
-        `;
-        deliveryTableBody.appendChild(row);
-    });
+    try {
+        const querySnapshot = await getDocs(collection(db, "Deliveries"));
+        const deliveryTableBody = document.getElementById('deliveryTable').getElementsByTagName('tbody')[0];
+        deliveryTableBody.innerHTML = '';
+        querySnapshot.forEach((doc) => {
+            const delivery = doc.data();
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${doc.id}</td>
+                <td>${delivery.bookingIds}</td>
+                <td>${delivery.orderingIds}</td>
+                <td>${delivery.inventoryIds}</td>
+                <td>${delivery.county}</td>
+                <td>${delivery.address}</td>
+                <td>${delivery.driverId}</td>
+                <td>${delivery.dispatchManagerId}</td>
+                <td>${delivery.vehiclePlate}</td>
+                <td>${delivery.deliveryStatus}</td>
+                <td>
+                    <button onclick="editDelivery('${doc.id}', '${delivery.bookingIds}', '${delivery.orderingIds}', '${delivery.inventoryIds}', '${delivery.county}', '${delivery.address}', '${delivery.driverId}', '${delivery.dispatchManagerId}', '${delivery.vehiclePlate}', '${delivery.deliveryStatus}')">Edit</button>
+                    <button onclick="deleteDelivery('${doc.id}')">Delete</button>
+                </td>
+            `;
+            deliveryTableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error("Error fetching deliveries: ", error.code, error.message);
+        alert(`An error occurred while fetching deliveries: ${error.message}`);
+    }
 }
 
 // Add or update booking entry
 async function addOrUpdateBooking(bookingId, certificationId, trainerName, employeeId, issueDate, userEmail) {
-    if (bookingId) {
-        const bookingRef = doc(db, "bookings", bookingId);
-        await updateDoc(bookingRef, { certificationId, trainerName, employeeId, issueDate: new Date(issueDate), userEmail });
-    } else {
-        await addDoc(collection(db, "bookings"), { certificationId, trainerName, employeeId, issueDate: new Date(issueDate), userEmail });
+    try {
+        if (bookingId) {
+            const bookingRef = doc(db, "Bookings", bookingId);
+            await updateDoc(bookingRef, { certificationId, trainerName, employeeId, issueDate: new Date(issueDate), userEmail });
+        } else {
+            await addDoc(collection(db, "Bookings"), { certificationId, trainerName, employeeId, issueDate: new Date(issueDate), userEmail });
+        }
+        fetchBookingData();
+    } catch (error) {
+        console.error("Error adding/updating booking: ", error.code, error.message);
+        alert(`An error occurred while saving the booking: ${error.message}`);
     }
-    fetchBookingData();
 }
 
 // Add or update order entry
 async function addOrUpdateOrder(orderId, orderUserEmail, quantity, orderDate, orderStatus, itemList, totalPrice) {
-    if (orderId) {
-        const orderRef = doc(db, "orders", orderId);
-        await updateDoc(orderRef, { orderUserEmail, quantity, orderDate: new Date(orderDate), orderStatus, itemList, totalPrice });
-    } else {
-        await addDoc(collection(db, "orders"), { orderUserEmail, quantity, orderDate: new Date(orderDate), orderStatus, itemList, totalPrice });
+    try {
+        if (orderId) {
+            const orderRef = doc(db, "Orders", orderId);
+            await updateDoc(orderRef, { orderUserEmail, quantity, orderDate: new Date(orderDate), orderStatus, itemList, totalPrice });
+        } else {
+            await addDoc(collection(db, "Orders"), { orderUserEmail, quantity, orderDate: new Date(orderDate), orderStatus, itemList, totalPrice });
+        }
+        fetchOrderingData();
+    } catch (error) {
+        console.error("Error adding/updating order: ", error.code, error.message);
+        alert(`An error occurred while saving the order: ${error.message}`);
     }
-    fetchOrderingData();
 }
 
 // Add or update delivery entry
 async function addOrUpdateDelivery(deliveryId, bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus) {
-    if (deliveryId) {
-        const deliveryRef = doc(db, "deliveries", deliveryId);
-        await updateDoc(deliveryRef, { bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus });
-    } else {
-        await addDoc(collection(db, "deliveries"), { bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus });
+    try {
+        if (deliveryId) {
+            const deliveryRef = doc(db, "Deliveries", deliveryId);
+            await updateDoc(deliveryRef, { bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus });
+        } else {
+            await addDoc(collection(db, "Deliveries"), { bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus });
+        }
+        fetchDeliveryData();
+    } catch (error) {
+        console.error("Error adding/updating delivery: ", error.code, error.message);
+        alert(`An error occurred while saving the delivery: ${error.message}`);
     }
-    fetchDeliveryData();
 }
 
 // Delete booking entry
 async function deleteBooking(bookingId) {
-    await deleteDoc(doc(db, "bookings", bookingId));
-    fetchBookingData();
+    try {
+        await deleteDoc(doc(db, "Bookings", bookingId));
+        fetchBookingData();
+    } catch (error) {
+        console.error("Error deleting booking: ", error.code, error.message);
+        alert(`An error occurred while deleting the booking: ${error.message}`);
+    }
 }
 
 // Delete order entry
 async function deleteOrder(orderId) {
-    await deleteDoc(doc(db, "orders", orderId));
-    fetchOrderingData();
+    try {
+        await deleteDoc(doc(db, "Orders", orderId));
+        fetchOrderingData();
+    } catch (error) {
+        console.error("Error deleting order: ", error.code, error.message);
+        alert(`An error occurred while deleting the order: ${error.message}`);
+    }
 }
 
 // Delete delivery entry
 async function deleteDelivery(deliveryId) {
-    await deleteDoc(doc(db, "deliveries", deliveryId));
-    fetchDeliveryData();
+    try {
+        await deleteDoc(doc(db, "Deliveries", deliveryId));
+        fetchDeliveryData();
+    } catch (error) {
+        console.error("Error deleting delivery: ", error.code, error.message);
+        alert(`An error occurred while deleting the delivery: ${error.message}`);
+    }
 }
 
 // Edit booking entry
