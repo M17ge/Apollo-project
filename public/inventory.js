@@ -66,10 +66,21 @@ function initializeForms() {
         }
     })();
 
+    // Generate and set supplier ID for supplier form
+    (async () => {
+        try {
+            const supplierRef = doc(collection(db, 'Suppliers'));
+            document.getElementById('supplierID').value = supplierRef.id;
+        } catch (error) {
+            const msg = error && error.message ? error.message : String(error);
+            console.error("Error generating supplier ID: ", error.code || '', msg);
+            alert(`An error occurred while generating supplier ID: ${msg}`);
+        }
+    })();
+
     // Inventory form submission
     document.getElementById('inventoryForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const uniqueID = document.getElementById('uniqueID').value;
         const inventoryID = document.getElementById('inventoryID').value;
         const stockID = document.getElementById('stockID').value;
         const quantity = document.getElementById('quantity').value;
@@ -79,7 +90,7 @@ function initializeForms() {
         const managerID = document.getElementById('managerID').value;
 
         try {
-            const docRef = await addDoc(collection(db, "Inventory"), {
+            await addDoc(collection(db, "Inventory"), {
                 inventoryID,
                 stockID,
                 quantity,
@@ -88,8 +99,9 @@ function initializeForms() {
                 supplierID,
                 managerID
             });
-            document.getElementById('uniqueID').value = docRef.id;
-            // Optionally, you can clear the form fields here
+            // Generate a new inventory ID for the next entry
+            const newInventoryRef = doc(collection(db, 'Inventory'));
+            document.getElementById('inventoryID').value = newInventoryRef.id;
         } catch (error) {
             const msg = error && error.message ? error.message : String(error);
             console.error("Error adding inventory: ", error.code || '', msg);
@@ -106,13 +118,15 @@ function initializeForms() {
         const dateSupplied = document.getElementById('dateSupplied').value;
 
         try {
-            const docRef = await addDoc(collection(db, "Suppliers"), {
+            await addDoc(collection(db, "Suppliers"), {
                 name,
                 information,
                 invoiceID,
                 dateSupplied
             });
-            document.getElementById('supplierID').value = docRef.id;
+            // Generate a new supplier ID for the next entry
+            const newSupplierRef = doc(collection(db, 'Suppliers'));
+            document.getElementById('supplierID').value = newSupplierRef.id;
         } catch (error) {
             const msg = error && error.message ? error.message : String(error);
             console.error("Error adding supplier: ", error.code || '', msg);
@@ -129,15 +143,14 @@ function initializeForms() {
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
                 const row = inventoryTableBody.insertRow();
-                row.insertCell(0).textContent = doc.id;
-                row.insertCell(1).textContent = data.inventoryID || '';
-                row.insertCell(2).textContent = data.stockID;
-                row.insertCell(3).textContent = data.quantity;
-                row.insertCell(4).textContent = data.dateBrought;
-                row.insertCell(5).textContent = data.amount;
-                row.insertCell(6).textContent = data.supplierID;
-                row.insertCell(7).textContent = data.managerID;
-                row.insertCell(8).textContent = 'Actions'; // Placeholder for actions
+                row.insertCell(0).textContent = data.inventoryID || '';
+                row.insertCell(1).textContent = data.stockID;
+                row.insertCell(2).textContent = data.quantity;
+                row.insertCell(3).textContent = data.dateBrought;
+                row.insertCell(4).textContent = data.amount;
+                row.insertCell(5).textContent = data.supplierID;
+                row.insertCell(6).textContent = data.managerID;
+                row.insertCell(7).textContent = 'Actions'; // Placeholder for actions
             });
         } catch (error) {
             const msg = error && error.message ? error.message : String(error);

@@ -38,10 +38,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Fetch and display user metadata (creation time, etc.)
+// ...existing code...
 async function fetchUserMetadata(userId) {
     try {
-        // If you store user creation time in Firestore, fetch it here
-        const userDoc = await getDoc(doc(db, "Users", userId));
+        // Use lowercase 'users' if that's your collection name
+        const userDoc = await getDoc(doc(db, "users", userId));
         if (userDoc.exists()) {
             const userData = userDoc.data();
             document.getElementById('userCreatedAt').textContent = userData.createdAt
@@ -56,6 +57,7 @@ async function fetchUserMetadata(userId) {
         alert(`An error occurred while fetching user metadata: ${msg}`);
     }
 }
+// ...existing code...
 
 // Fetch and display reports (transactions)
 async function fetchReports() {
