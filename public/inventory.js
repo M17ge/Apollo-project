@@ -21,13 +21,9 @@ const auth = getAuth(app);
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            console.log("User is logged in:", user);
-            // Set the manager ID in the form field
             document.getElementById('managerID').value = user.uid;
             initializeForms();
         } else {
-            console.log("No user is logged in");
-            // Redirect to login page
             window.location.href = "login.html";
         }
     });
@@ -37,28 +33,44 @@ function initializeForms() {
     // Generate and set invoice ID for supplier form
     (async () => {
         try {
-            const invoiceRef = doc(collection(db, 'invoices'));
-            const newInvoiceID = invoiceRef.id;
-            document.getElementById('invoiceID').value = newInvoiceID;
+            const invoiceRef = doc(collection(db, 'Invoices'));
+            document.getElementById('invoiceID').value = invoiceRef.id;
         } catch (error) {
-            console.error("Error generating invoice ID: ", error);
+            const msg = error && error.message ? error.message : String(error);
+            console.error("Error generating invoice ID: ", error.code || '', msg);
+            alert(`An error occurred while generating invoice ID: ${msg}`);
         }
     })();
 
     // Generate and set stock ID for inventory form
     (async () => {
         try {
-            const stockRef = doc(collection(db, 'stocks'));
-            const newStockID = stockRef.id;
-            document.getElementById('stockID').value = newStockID;
+            const stockRef = doc(collection(db, 'Stocks'));
+            document.getElementById('stockID').value = stockRef.id;
         } catch (error) {
-            console.error("Error generating stock ID: ", error);
+            const msg = error && error.message ? error.message : String(error);
+            console.error("Error generating stock ID: ", error.code || '', msg);
+            alert(`An error occurred while generating stock ID: ${msg}`);
+        }
+    })();
+
+    // Generate and set inventory ID for inventory form
+    (async () => {
+        try {
+            const inventoryRef = doc(collection(db, 'Inventory'));
+            document.getElementById('inventoryID').value = inventoryRef.id;
+        } catch (error) {
+            const msg = error && error.message ? error.message : String(error);
+            console.error("Error generating inventory ID: ", error.code || '', msg);
+            alert(`An error occurred while generating inventory ID: ${msg}`);
         }
     })();
 
     // Inventory form submission
     document.getElementById('inventoryForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const uniqueID = document.getElementById('uniqueID').value;
+        const inventoryID = document.getElementById('inventoryID').value;
         const stockID = document.getElementById('stockID').value;
         const quantity = document.getElementById('quantity').value;
         const dateBrought = document.getElementById('dateBrought').value;
@@ -67,7 +79,8 @@ function initializeForms() {
         const managerID = document.getElementById('managerID').value;
 
         try {
-            const docRef = await addDoc(collection(db, "inventory"), {
+            const docRef = await addDoc(collection(db, "Inventory"), {
+                inventoryID,
                 stockID,
                 quantity,
                 dateBrought,
@@ -75,11 +88,12 @@ function initializeForms() {
                 supplierID,
                 managerID
             });
-            console.log("Document written with ID: ", docRef.id);
             document.getElementById('uniqueID').value = docRef.id;
             // Optionally, you can clear the form fields here
-        } catch (e) {
-            console.error("Error adding document: ", e);
+        } catch (error) {
+            const msg = error && error.message ? error.message : String(error);
+            console.error("Error adding inventory: ", error.code || '', msg);
+            alert(`An error occurred while adding inventory: ${msg}`);
         }
     });
 
@@ -92,35 +106,43 @@ function initializeForms() {
         const dateSupplied = document.getElementById('dateSupplied').value;
 
         try {
-            const docRef = await addDoc(collection(db, "suppliers"), {
+            const docRef = await addDoc(collection(db, "Suppliers"), {
                 name,
                 information,
                 invoiceID,
                 dateSupplied
             });
-            console.log("Document written with ID: ", docRef.id);
             document.getElementById('supplierID').value = docRef.id;
-            // Optionally, you can clear the form fields here
-        } catch (e) {
-            console.error("Error adding document: ", e);
+        } catch (error) {
+            const msg = error && error.message ? error.message : String(error);
+            console.error("Error adding supplier: ", error.code || '', msg);
+            alert(`An error occurred while adding supplier: ${msg}`);
         }
     });
 
     // Fetch and display inventory data
     (async () => {
-        const querySnapshot = await getDocs(collection(db, "inventory"));
-        const inventoryTableBody = document.getElementById('inventoryTable').getElementsByTagName('tbody')[0];
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            const row = inventoryTableBody.insertRow();
-            row.insertCell(0).textContent = doc.id;
-            row.insertCell(1).textContent = data.stockID;
-            row.insertCell(2).textContent = data.quantity;
-            row.insertCell(3).textContent = data.dateBrought;
-            row.insertCell(4).textContent = data.amount;
-            row.insertCell(5).textContent = data.supplierID;
-            row.insertCell(6).textContent = data.managerID; // Display Manager ID
-            row.insertCell(7).textContent = 'Actions'; // Placeholder for actions
-        });
+        try {
+            const querySnapshot = await getDocs(collection(db, "Inventory"));
+            const inventoryTableBody = document.getElementById('inventoryTable').getElementsByTagName('tbody')[0];
+            inventoryTableBody.innerHTML = '';
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const row = inventoryTableBody.insertRow();
+                row.insertCell(0).textContent = doc.id;
+                row.insertCell(1).textContent = data.inventoryID || '';
+                row.insertCell(2).textContent = data.stockID;
+                row.insertCell(3).textContent = data.quantity;
+                row.insertCell(4).textContent = data.dateBrought;
+                row.insertCell(5).textContent = data.amount;
+                row.insertCell(6).textContent = data.supplierID;
+                row.insertCell(7).textContent = data.managerID;
+                row.insertCell(8).textContent = 'Actions'; // Placeholder for actions
+            });
+        } catch (error) {
+            const msg = error && error.message ? error.message : String(error);
+            console.error("Error fetching inventory: ", error.code || '', msg);
+            alert(`An error occurred while fetching inventory: ${msg}`);
+        }
     })();
 }

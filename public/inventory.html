@@ -20,8 +20,8 @@
     <div id="inventoryFormContainer">
         <h2>Add Inventory</h2>
         <form id="inventoryForm">
-            <label for="uniqueID">Unique ID:</label>
-            <input type="text" id="uniqueID" name="uniqueID" readonly>
+            <label for="inventoryID">Inventory ID:</label>
+            <input type="text" id="inventoryID" name="inventoryID" readonly required>
             <label for="stockID">Stock ID:</label>
             <input type="text" id="stockID" name="stockID" readonly required>
             <label for="quantity">Quantity:</label>
@@ -39,18 +39,19 @@
     </div>
     <h2>Inventory Table</h2>
     <table id="inventoryTable">
-        <thead>
-            <tr>
-                <th>Unique ID</th>
-                <th>Stock ID</th>
-                <th>Quantity</th>
-                <th>Date Brought</th>
-                <th>Amount</th>
-                <th>Supplier ID</th>
-                <th>Manager ID</th> <!-- Added Manager ID column -->
-                <th>Actions</th>
-            </tr>
-        </thead>
+    <thead>
+        <tr>
+            <th>Unique ID</th>
+            <th>Inventory ID</th>
+            <th>Stock ID</th>
+            <th>Quantity</th>
+            <th>Date Brought</th>
+            <th>Amount</th>
+            <th>Supplier ID</th>
+            <th>Manager ID</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
         <tbody>
             <!-- Inventory data will be populated here -->
         </tbody>

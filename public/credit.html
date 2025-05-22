@@ -16,32 +16,35 @@
         <i class="fas fa-arrow-left"></i></a>
     <h2>Credit Management</h2>
     <form id="creditForm">
-        <input type="number" id="amount" placeholder="Credit Amount" required>
-        <input type="number" id="interest" placeholder="Interest (%)" required>
-        <input type="date" id="dateIssued" placeholder="Date Issued" required>
-        <input type="email" id="userEmail" placeholder="User Email" required>
-        <label for="status">Status</label>
-        <select id="status" required>
-            <option value="Paid">Paid</option>
-            <option value="Paying">Paying</option>
-            <option value="Issued">Issued</option>
-        </select>
-        <button type="submit">Add/Update Credit</button>
-    </form>
+    <label for="managerID">Finance Manager</label>
+    <input type="text" id="managerID" placeholder="Finance Manager" readonly>
+    <input type="number" id="amount" placeholder="Credit Amount" required>
+    <input type="number" id="interest" placeholder="Interest (%)" required>
+    <input type="date" id="dateIssued" placeholder="Date Issued" required>
+    <input type="email" id="userEmail" placeholder="User Email" required>
+    <label for="status">Status</label>
+    <select id="status" required>
+        <option value="Paid">Paid</option>
+        <option value="Paying">Paying</option>
+        <option value="Issued">Issued</option>
+    </select>
+    <button type="submit">Add/Update Credit</button>
+</form>
     <br>
     <table id="creditTable">
         <thead>
-            <tr>
-                <th>Credit ID</th>
-                <th>Credit Amount</th>
-                <th>Interest (%)</th>
-                <th>Repayment Value</th>
-                <th>Date Issued</th>
-                <th>User Email</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
+    <tr>
+        <th>Credit ID</th>
+        <th>Credit Amount</th>
+        <th>Interest (%)</th>
+        <th>Repayment Value</th>
+        <th>Date Issued</th>
+        <th>User Email</th>
+        <th>Status</th>
+        <th>Finance Manager</th>
+        <th>Actions</th>
+    </tr>
+</thead>
         <tbody>
             <!-- Data will be populated here -->
         </tbody>

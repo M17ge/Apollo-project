@@ -21,13 +21,20 @@ const db = getFirestore(app);
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            console.log("User is logged in:", user);
-            // Set the manager ID in the form field
-            document.getElementById('managerID').value = user.uid;
+            // Set the Finance Manager field (readonly)
+            const managerInput = document.createElement('input');
+            managerInput.type = "text";
+            managerInput.id = "managerID";
+            managerInput.placeholder = "Finance Manager";
+            managerInput.readOnly = true;
+            managerInput.value = user.email || user.uid;
+            // Insert as the first input in the form
+            const form = document.getElementById('creditForm');
+            form.insertBefore(managerInput, form.firstChild);
+
             initializeForms();
             fetchCreditData();
         } else {
-            console.log("No user is logged in");
             window.location.href = "login.html";
         }
     });
@@ -38,24 +45,27 @@ async function fetchCreditData() {
     try {
         const querySnapshot = await getDocs(collection(db, "Credit"));
         const creditTableBody = document.getElementById('creditTable').getElementsByTagName('tbody')[0];
-        creditTableBody.innerHTML = ''; // Clear existing data
-        querySnapshot.forEach((doc) => {
-            const credit = doc.data();
-            const repaymentValue = credit.amount + (credit.amount * (credit.interest / 100));
+        creditTableBody.innerHTML = '';
+        querySnapshot.forEach((docSnap) => {
+            const credit = docSnap.data();
+            // Repayment Value = ((100 + interest) * amount) / 100
+            const repaymentValue = ((100 + Number(credit.interest)) * Number(credit.amount)) / 100;
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${doc.id}</td>
-                <td>${credit.amount}</td>
-                <td>${credit.interest}</td>
-                <td>${repaymentValue.toFixed(2)}</td>
-                <td>${credit.dateIssued && credit.dateIssued.seconds ? new Date(credit.dateIssued.seconds * 1000).toLocaleDateString() : ''}</td>
-                <td>${credit.userEmail}</td>
-                <td>${credit.status}</td>
-                <td>
-                    <button onclick="editCredit('${doc.id}', ${credit.amount}, ${credit.interest}, '${credit.dateIssued && credit.dateIssued.seconds ? new Date(credit.dateIssued.seconds * 1000).toISOString().split('T')[0] : ''}', '${credit.userEmail}', '${credit.status}')">Edit</button>
-                    <button onclick="deleteCredit('${doc.id}')">Delete</button>
-                </td>
-            `;
+    <td>${docSnap.id}</td>
+    <td>${credit.amount}</td>
+    <td>${credit.interest}</td>
+    <td>${repaymentValue.toFixed(2)}</td>
+    <td>${credit.dateIssued && credit.dateIssued.seconds ? new Date(credit.dateIssued.seconds * 1000).toLocaleDateString() : ''}</td>
+    <td>${credit.userEmail}</td>
+    <td>${credit.status}</td>
+    <td>${credit.financeManager || ''}</td>
+    <td>
+        <button onclick="editCredit('${docSnap.id}', ${credit.amount}, ${credit.interest}, '${credit.dateIssued && credit.dateIssued.seconds ? new Date(credit.dateIssued.seconds * 1000).toISOString().split('T')[0] : ''}', '${credit.userEmail}', '${credit.status}', '${credit.financeManager || ''}')">Edit</button>
+        <button onclick="deleteCredit('${docSnap.id}')">Delete</button>
+    </td>
+`;
+
             creditTableBody.appendChild(row);
         });
     } catch (error) {
@@ -68,11 +78,13 @@ async function fetchCreditData() {
 // Add or update credit entry
 async function addOrUpdateCredit(creditId, amount, interest, dateIssued, userEmail, status) {
     try {
+        const financeManager = document.getElementById('managerID').value;
+        const creditData = { amount, interest, dateIssued: new Date(dateIssued), userEmail, status, financeManager };
         if (creditId) {
             const creditRef = doc(db, "Credit", creditId);
-            await updateDoc(creditRef, { amount, interest, dateIssued: new Date(dateIssued), userEmail, status });
+            await updateDoc(creditRef, creditData);
         } else {
-            await addDoc(collection(db, "Credit"), { amount, interest, dateIssued: new Date(dateIssued), userEmail, status });
+            await addDoc(collection(db, "Credit"), creditData);
         }
         fetchCreditData();
     } catch (error) {
@@ -95,7 +107,7 @@ async function deleteCredit(creditId) {
 }
 
 // Edit credit entry
-function editCredit(creditId, amount, interest, dateIssued, userEmail, status) {
+window.editCredit = function (creditId, amount, interest, dateIssued, userEmail, status) {
     document.getElementById('amount').value = amount;
     document.getElementById('interest').value = interest;
     document.getElementById('dateIssued').value = dateIssued;
@@ -104,9 +116,12 @@ function editCredit(creditId, amount, interest, dateIssued, userEmail, status) {
     document.getElementById('creditForm').dataset.creditId = creditId;
 }
 
+// Delete credit entry (make sure it's globally accessible)
+window.deleteCredit = deleteCredit;
+
 // Event listener for form submission
 function initializeForms() {
-    document.getElementById('creditForm').addEventListener('submit', function(event) {
+    document.getElementById('creditForm').addEventListener('submit', function (event) {
         event.preventDefault();
         const creditId = event.target.dataset.creditId || null;
         const amount = parseFloat(document.getElementById('amount').value);

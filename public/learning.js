@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -19,14 +19,27 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
         if (user) {
-            console.log("User is logged in:", user);
-            document.getElementById('trainerId').value = user.uid;
-            fetchCertificationData();
+            try {
+                // Auto-fill trainerId and trainerName if present
+                document.getElementById('trainerId').value = user.uid;
+                if (user.displayName) {
+                    document.getElementById('trainerName').value = user.displayName;
+                } else {
+                    // Optionally fetch from Users collection if displayName is not present
+                    const userDoc = await getDoc(doc(db, "Users", user.uid));
+                    if (userDoc.exists() && userDoc.data().displayName) {
+                        document.getElementById('trainerName').value = userDoc.data().displayName;
+                    }
+                }
+                fetchCertificationData();
+            } catch (error) {
+                const msg = error && error.message ? error.message : String(error);
+                console.error("Error during trainer auto-fill: ", error.code || '', msg);
+                alert(`An error occurred while auto-filling trainer info: ${msg}`);
+            }
         } else {
-            console.log("No user is logged in");
-            // Redirect to login page
             window.location.href = "login.html";
         }
     });
@@ -34,50 +47,80 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Fetch and display certification data
 async function fetchCertificationData() {
-    const querySnapshot = await getDocs(collection(db, "certifications"));
-    const certificationTableBody = document.getElementById('certificationTable').getElementsByTagName('tbody')[0];
-    certificationTableBody.innerHTML = ''; // Clear existing data
-    querySnapshot.forEach((doc) => {
-        const certification = doc.data();
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${doc.id}</td>
-            <td>${certification.userEmail}</td>
-            <td>${certification.estimatedCompletionTime}</td>
-            <td>${certification.courseName}</td>
-            <td>${new Date(certification.issueDate.seconds * 1000).toLocaleDateString()}</td>
-            <td>${certification.description}</td>
-            <td>${certification.status}</td>
-            <td>${certification.trainerId}</td>
-            <td>${certification.trainerName}</td>
-            <td>
-                <button onclick="editCertification('${doc.id}', '${certification.userEmail}', '${certification.estimatedCompletionTime}', '${certification.courseName}', '${new Date(certification.issueDate.seconds * 1000).toISOString().split('T')[0]}', '${certification.description}', '${certification.status}', '${certification.trainerId}', '${certification.trainerName}')">Edit</button>
-                <button onclick="deleteCertification('${doc.id}')">Delete</button>
-            </td>
-        `;
-        certificationTableBody.appendChild(row);
-    });
+    try {
+        const querySnapshot = await getDocs(collection(db, "Certifications"));
+        const certificationTableBody = document.getElementById('certificationTable').getElementsByTagName('tbody')[0];
+        certificationTableBody.innerHTML = '';
+        querySnapshot.forEach((docSnap) => {
+            const certification = docSnap.data();
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${docSnap.id}</td>
+                <td>${certification.userEmail}</td>
+                <td>${certification.estimatedCompletionTime}</td>
+                <td>${certification.courseName}</td>
+                <td>${certification.issueDate && certification.issueDate.seconds ? new Date(certification.issueDate.seconds * 1000).toLocaleDateString() : ''}</td>
+                <td>${certification.description}</td>
+                <td>${certification.status}</td>
+                <td>${certification.trainerId}</td>
+                <td>${certification.trainerName}</td>
+                <td>${certification.bookingId || ''}</td>
+                <td>
+                    <button onclick="editCertification('${docSnap.id}', '${certification.userEmail}', '${certification.estimatedCompletionTime}', '${certification.courseName}', '${certification.issueDate && certification.issueDate.seconds ? new Date(certification.issueDate.seconds * 1000).toISOString().split('T')[0] : ''}', '${certification.description}', '${certification.status}', '${certification.trainerId}', '${certification.trainerName}', '${certification.bookingId || ''}')">Edit</button>
+                    <button onclick="deleteCertification('${docSnap.id}')">Delete</button>
+                </td>
+            `;
+            certificationTableBody.appendChild(row);
+        });
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error fetching certifications: ", error.code || '', msg);
+        alert(`An error occurred while fetching certifications: ${msg}`);
+    }
 }
 
 // Add or update certification entry
-async function addOrUpdateCertification(certificationId, userEmail, estimatedCompletionTime, courseName, issueDate, description, status, trainerId, trainerName) {
-    if (certificationId) {
-        const certificationRef = doc(db, "certifications", certificationId);
-        await updateDoc(certificationRef, { userEmail, estimatedCompletionTime, courseName, issueDate: new Date(issueDate), description, status, trainerId, trainerName });
-    } else {
-        await addDoc(collection(db, "certifications"), { userEmail, estimatedCompletionTime, courseName, issueDate: new Date(issueDate), description, status, trainerId, trainerName });
+async function addOrUpdateCertification(certificationId, userEmail, estimatedCompletionTime, courseName, issueDate, description, status, trainerId, trainerName, bookingId) {
+    try {
+        const certData = {
+            userEmail,
+            estimatedCompletionTime,
+            courseName,
+            issueDate: new Date(issueDate),
+            description,
+            status,
+            trainerId,
+            trainerName,
+            bookingId // Reference to Bookings collection
+        };
+        if (certificationId) {
+            const certificationRef = doc(db, "Certifications", certificationId);
+            await updateDoc(certificationRef, certData);
+        } else {
+            await addDoc(collection(db, "Certifications"), certData);
+        }
+        fetchCertificationData();
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error adding/updating certification: ", error.code || '', msg);
+        alert(`An error occurred while saving the certification: ${msg}`);
     }
-    fetchCertificationData();
 }
 
 // Delete certification entry
 async function deleteCertification(certificationId) {
-    await deleteDoc(doc(db, "certifications", certificationId));
-    fetchCertificationData();
+    try {
+        await deleteDoc(doc(db, "Certifications", certificationId));
+        fetchCertificationData();
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error deleting certification: ", error.code || '', msg);
+        alert(`An error occurred while deleting the certification: ${msg}`);
+    }
 }
 
 // Edit certification entry
-function editCertification(certificationId, userEmail, estimatedCompletionTime, courseName, issueDate, description, status, trainerId, trainerName) {
+window.editCertification = function(certificationId, userEmail, estimatedCompletionTime, courseName, issueDate, description, status, trainerId, trainerName, bookingId) {
     document.getElementById('userEmail').value = userEmail;
     document.getElementById('estimatedCompletionTime').value = estimatedCompletionTime;
     document.getElementById('courseName').value = courseName;
@@ -86,8 +129,12 @@ function editCertification(certificationId, userEmail, estimatedCompletionTime, 
     document.getElementById('status').value = status;
     document.getElementById('trainerId').value = trainerId;
     document.getElementById('trainerName').value = trainerName;
+    document.getElementById('bookingId').value = bookingId || '';
     document.getElementById('certificationForm').dataset.certificationId = certificationId;
 }
+
+// Delete certification entry (make sure it's globally accessible)
+window.deleteCertification = deleteCertification;
 
 // Event listener for form submission
 document.getElementById('certificationForm').addEventListener('submit', function(event) {
@@ -101,10 +148,8 @@ document.getElementById('certificationForm').addEventListener('submit', function
     const status = document.getElementById('status').value;
     const trainerId = document.getElementById('trainerId').value;
     const trainerName = document.getElementById('trainerName').value;
-    addOrUpdateCertification(certificationId, userEmail, estimatedCompletionTime, courseName, issueDate, description, status, trainerId, trainerName);
+    const bookingId = document.getElementById('bookingId').value;
+    addOrUpdateCertification(certificationId, userEmail, estimatedCompletionTime, courseName, issueDate, description, status, trainerId, trainerName, bookingId);
     event.target.reset();
     delete event.target.dataset.certificationId;
 });
-
-// Fetch and display certification data on page load
-document.addEventListener('DOMContentLoaded', fetchCertificationData);

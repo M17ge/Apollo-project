@@ -13,36 +13,38 @@
     <a href="Landing.html" class="back-icon" title="Back to Landing Page">
         <i class="fas fa-arrow-left"></i></a>
     <h2>Booking Management</h2>
-    <form id="bookingForm">
-        <label for="certificationId">Certification ID:</label>
-        <input type="text" id="certificationId" placeholder="Certification ID" required>
-        <label for="trainerName">Trainer Name:</label>
-        <input type="text" id="trainerName" placeholder="Trainer Name" required>
-        <label for="employeeId">Employee ID:</label>
-        <input type="text" id="employeeId" placeholder="Employee ID" required>
-        <label for="issueDate">Issue Date:</label>
-        <input type="date" id="issueDate" placeholder="Issue Date" required>
-        <label for="userEmail">User Email:</label>
-        <input type="email" id="userEmail" placeholder="User Email" required>
-        <button type="submit">Add/Update Booking</button>
-    </form>
-    <br>
-    <table id="bookingTable">
-        <thead>
-            <tr>
-                <th>Booking ID</th>
-                <th>Certification ID</th>
-                <th>Trainer Name</th>
-                <th>Employee ID</th>
-                <th>Issue Date</th>
-                <th>User Email</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Data will be populated here -->
-        </tbody>
-    </table>
+<form id="bookingForm">
+    <label for="bookingId">Booking ID:</label>
+    <input type="text" id="bookingId" placeholder="Booking ID" readonly>
+    <label for="certificationId">Certification ID:</label>
+    <input type="text" id="certificationId" placeholder="Certification ID" required>
+    <label for="trainerName">Trainer Name:</label>
+    <input type="text" id="trainerName" placeholder="Trainer Name" required>
+    <label for="employeeId">Employee ID:</label>
+    <input type="text" id="employeeId" placeholder="Employee ID" required>
+    <label for="issueDate">Issue Date:</label>
+    <input type="date" id="issueDate" placeholder="Issue Date" required>
+    <label for="userEmail">User Email:</label>
+    <input type="email" id="userEmail" placeholder="User Email" required>
+    <button type="submit">Add/Update Booking</button>
+</form>
+<br>
+<table id="bookingTable">
+    <thead>
+        <tr>
+            <th>Booking ID</th>
+            <th>Certification ID</th>
+            <th>Trainer Name</th>
+            <th>Employee ID</th>
+            <th>Issue Date</th>
+            <th>User Email</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Data will be populated here -->
+    </tbody>
+</table>
 
     <h2>Ordering Management</h2>
     <form id="orderingForm">

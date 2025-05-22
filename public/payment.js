@@ -26,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchPayments();
         } else {
             console.log("No user is logged in");
-            // Redirect to login page
             window.location.href = "login.html";
         }
     });
@@ -41,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const to = document.getElementById('to').value;
         const invoiceID = document.getElementById('invoiceID').value;
         const date = document.getElementById('date').value;
-        addOrUpdatePayment(paymentID, managerID, paymentMethod, creditID, from, to, invoiceID, date);
+        await addOrUpdatePayment(paymentID, managerID, paymentMethod, creditID, from, to, invoiceID, date);
         e.target.reset();
         delete e.target.dataset.paymentID;
     });
@@ -49,64 +48,83 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Fetch and display payments
 async function fetchPayments() {
-    const querySnapshot = await getDocs(collection(db, "payments"));
-    const deliveredTableBody = document.getElementById('deliveredTable').getElementsByTagName('tbody')[0];
-    const sentTableBody = document.getElementById('sentTable').getElementsByTagName('tbody')[0];
-    deliveredTableBody.innerHTML = ''; // Clear existing data
-    sentTableBody.innerHTML = ''; // Clear existing data
+    try {
+        const querySnapshot = await getDocs(collection(db, "Payments"));
+        const deliveredTableBody = document.getElementById('deliveredTable').getElementsByTagName('tbody')[0];
+        const sentTableBody = document.getElementById('sentTable').getElementsByTagName('tbody')[0];
+        deliveredTableBody.innerHTML = '';
+        sentTableBody.innerHTML = '';
 
-    querySnapshot.forEach((doc) => {
-        const payment = doc.data();
-        const row = document.createElement('tr');
-        if (payment.paymentMethod === 'credit') {
-            row.innerHTML = `
-                <td>${doc.id}</td>
-                <td>${payment.managerID}</td>
-                <td>${payment.paymentMethod}</td>
-                <td>${payment.creditID}</td>
-                <td>${payment.from}</td>
-                <td>${payment.to}</td>
-                <td>${new Date(payment.date.seconds * 1000).toLocaleDateString()}</td>
-                <td>
-                    <button onclick="editPayment('${doc.id}', '${payment.managerID}', '${payment.paymentMethod}', '${payment.creditID}', '${payment.from}', '${payment.to}', '${payment.invoiceID}', '${new Date(payment.date.seconds * 1000).toISOString().split('T')[0]}')">Edit</button>
-                    <button onclick="deletePayment('${doc.id}')">Delete</button>
-                </td>
-            `;
-            deliveredTableBody.appendChild(row);
-        } else {
-            row.innerHTML = `
-                <td>${doc.id}</td>
-                <td>${payment.managerID}</td>
-                <td>${payment.paymentMethod}</td>
-                <td>${payment.from}</td>
-                <td>${payment.to}</td>
-                <td>${payment.invoiceID}</td>
-                <td>${new Date(payment.date.seconds * 1000).toLocaleDateString()}</td>
-                <td>
-                    <button onclick="editPayment('${doc.id}', '${payment.managerID}', '${payment.paymentMethod}', '${payment.creditID}', '${payment.from}', '${payment.to}', '${payment.invoiceID}', '${new Date(payment.date.seconds * 1000).toISOString().split('T')[0]}')">Edit</button>
-                    <button onclick="deletePayment('${doc.id}')">Delete</button>
-                </td>
-            `;
-            sentTableBody.appendChild(row);
-        }
-    });
+        querySnapshot.forEach((docSnap) => {
+            const payment = docSnap.data();
+            const row = document.createElement('tr');
+            if (payment.paymentMethod === 'credit') {
+                row.innerHTML = `
+                    <td>${docSnap.id}</td>
+                    <td>${payment.managerID}</td>
+                    <td>${payment.paymentMethod}</td>
+                    <td>${payment.creditID}</td>
+                    <td>${payment.from}</td>
+                    <td>${payment.to}</td>
+                    <td>${payment.invoiceID}</td>
+                    <td>${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toLocaleDateString() : ''}</td>
+                    <td>
+                        <button onclick="editPayment('${docSnap.id}', '${payment.managerID}', '${payment.paymentMethod}', '${payment.creditID}', '${payment.from}', '${payment.to}', '${payment.invoiceID}', '${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toISOString().split('T')[0] : ''}')">Edit</button>
+                        <button onclick="deletePayment('${docSnap.id}')">Delete</button>
+                    </td>
+                `;
+                deliveredTableBody.appendChild(row);
+            } else {
+                row.innerHTML = `
+                    <td>${docSnap.id}</td>
+                    <td>${payment.managerID}</td>
+                    <td>${payment.paymentMethod}</td>
+                    <td>${payment.from}</td>
+                    <td>${payment.to}</td>
+                    <td>${payment.invoiceID}</td>
+                    <td>${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toLocaleDateString() : ''}</td>
+                    <td>
+                        <button onclick="editPayment('${docSnap.id}', '${payment.managerID}', '${payment.paymentMethod}', '${payment.creditID}', '${payment.from}', '${payment.to}', '${payment.invoiceID}', '${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toISOString().split('T')[0] : ''}')">Edit</button>
+                        <button onclick="deletePayment('${docSnap.id}')">Delete</button>
+                    </td>
+                `;
+                sentTableBody.appendChild(row);
+            }
+        });
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error fetching payments: ", error.code || '', msg);
+        alert(`An error occurred while fetching payments: ${msg}`);
+    }
 }
 
 // Add or update payment entry
 async function addOrUpdatePayment(paymentID, managerID, paymentMethod, creditID, from, to, invoiceID, date) {
-    if (paymentID) {
-        const paymentRef = doc(db, "payments", paymentID);
-        await updateDoc(paymentRef, { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
-    } else {
-        await addDoc(collection(db, "payments"), { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
+    try {
+        if (paymentID) {
+            const paymentRef = doc(db, "Payments", paymentID);
+            await updateDoc(paymentRef, { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
+        } else {
+            await addDoc(collection(db, "Payments"), { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
+        }
+        fetchPayments();
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error adding/updating payment: ", error.code || '', msg);
+        alert(`An error occurred while saving the payment: ${msg}`);
     }
-    fetchPayments();
 }
 
 // Delete payment entry
 async function deletePayment(paymentID) {
-    await deleteDoc(doc(db, "payments", paymentID));
-    fetchPayments();
+    try {
+        await deleteDoc(doc(db, "Payments", paymentID));
+        fetchPayments();
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error deleting payment: ", error.code || '', msg);
+        alert(`An error occurred while deleting the payment: ${msg}`);
+    }
 }
 
 // Edit payment entry
@@ -121,6 +139,3 @@ function editPayment(paymentID, managerID, paymentMethod, creditID, from, to, in
     document.getElementById('date').value = date;
     document.getElementById('paymentForm').dataset.paymentID = paymentID;
 }
-
-// Fetch and display payments on page load
-document.addEventListener('DOMContentLoaded', fetchPayments);
