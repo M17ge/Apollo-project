@@ -1,7 +1,16 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 import { getFirestore, collection, setDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { logDatabaseActivity } from './reports.js';
 
+// Then use it after database operations, for example:
+try {
+    const docRef = await addDoc(collection(db, "Inventory"), inventoryData);
+    await logDatabaseActivity('create', 'Inventory', docRef.id, inventoryData);
+    // ... rest of your code
+} catch (error) {
+    // ... error handling
+}
 // Your web app's Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
@@ -133,6 +142,7 @@ async function addUser(email, password, additionalData) {
                 county: additionalData.county,
                 userRole: additionalData.userRole
             });
+            await logDatabaseActivity('create', 'Farmers', user.uid, additionalData);
             console.log("User information stored in the 'Farmers' collection.");
         } catch (e) {
             console.error("Error storing user information in Firestore:", e.code, e.message);
@@ -152,6 +162,7 @@ async function updateUser(userId, updatedData) {
         // Update the user's document in the "Farmers" collection in Firestore
         const userRef = doc(db, "Farmers", userId); // Changed to "Farmers"
         await updateDoc(userRef, updatedData);
+        await logDatabaseActivity('update', 'Farmers', userId, updatedData);
         console.log(`User document with ID ${userId} updated in Firestore.`);
 
         // Update the user's information in the DOM table
@@ -187,6 +198,7 @@ async function removeUser(userId) {
         // Delete the user's document from Firestore
         const userRef = doc(db, "Farmers", userId); // Changed to "Farmers"
         await deleteDoc(userRef);
+        await logDatabaseActivity('delete', 'Farmers', userId, {});
         console.log(`User document with ID ${userId} deleted from Firestore.`);
 
         // Refresh the user list

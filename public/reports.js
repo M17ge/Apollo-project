@@ -1,7 +1,16 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getFirestore, collection, getDocs, getDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, getDoc, doc, query, where, addDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { logDatabaseActivity } from './reports.js';
 
+// Then use it after database operations, for example:
+try {
+    const docRef = await addDoc(collection(db, "Inventory"), inventoryData);
+    await logDatabaseActivity('create', 'Inventory', docRef.id, inventoryData);
+    // ... rest of your code
+} catch (error) {
+    // ... error handling
+}
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
@@ -58,13 +67,64 @@ async function fetchUserMetadata(userId) {
     }
 }
 // ...existing code...
+// Add this after your Firebase initialization
 
+async function logDatabaseActivity(action, collection, documentId, data) {
+    try {
+        const timestamp = new Date();
+        const logData = {
+            userId: auth.currentUser?.uid || 'unknown',
+            action: action,
+            timestamp: timestamp,
+            documentId: documentId,
+            collection: collection,
+            data: data,
+            authorizedBy: auth.currentUser?.uid || 'unknown',
+            editedBy: auth.currentUser?.email || 'unknown'
+        };
+
+        await addDoc(collection(db, "Reports"), logData);
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error logging activity: ", error.code || '', msg);
+        alert(`An error occurred while logging activity: ${msg}`);
+    }
+}
 // Fetch and display reports (transactions)
 async function fetchReports() {
     try {
-        const querySnapshot = await getDocs(collection(db, "Transactions")); // Capitalized
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const collectionFilter = document.getElementById('collectionFilter').value;
+        const actionFilter = document.getElementById('actionFilter').value;
+
+        let queryRef = collection(db, "Reports"); // Updated to use 'Reports' collection
+
+        // Apply filters
+        const filters = [];
+        if (startDate) {
+            filters.push(where('timestamp', '>=', new Date(startDate)));
+        }
+        if (endDate) {
+            // Add 1 day to endDate to include the whole day
+            const end = new Date(endDate);
+            end.setDate(end.getDate() + 1);
+            filters.push(where('timestamp', '<', end));
+        }
+        if (collectionFilter) {
+            filters.push(where('collection', '==', collectionFilter));
+        }
+        if (actionFilter) {
+            filters.push(where('action', '==', actionFilter));
+        }
+        if (filters.length > 0) {
+            queryRef = query(queryRef, ...filters);
+        }
+
+        const querySnapshot = await getDocs(queryRef);
         const reportTableBody = document.getElementById('reportTable').getElementsByTagName('tbody')[0];
         reportTableBody.innerHTML = '';
+
         querySnapshot.forEach((docSnap) => {
             const transaction = docSnap.data();
             const row = document.createElement('tr');
@@ -72,7 +132,7 @@ async function fetchReports() {
                 <td>${docSnap.id}</td>
                 <td>${transaction.userId || ''}</td>
                 <td>${transaction.action || ''}</td>
-                <td>${transaction.timestamp && transaction.timestamp.seconds ? new Date(transaction.timestamp.seconds * 1000).toLocaleString() : ''}</td>
+                <td>${transaction.timestamp && transaction.timestamp.toDate ? transaction.timestamp.toDate().toLocaleString() : ''}</td>
                 <td>${transaction.documentId || ''}</td>
                 <td>${transaction.collection || ''}</td>
                 <td>${JSON.stringify(transaction.data) || ''}</td>

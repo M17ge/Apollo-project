@@ -1,7 +1,16 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { logDatabaseActivity } from './reports.js';
 
+// Then use it after database operations, for example:
+try {
+    const docRef = await addDoc(collection(db, "Inventory"), inventoryData);
+    await logDatabaseActivity('create', 'Inventory', docRef.id, inventoryData);
+    // ... rest of your code
+} catch (error) {
+    // ... error handling
+}
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
@@ -128,11 +137,14 @@ async function fetchDeliveryData() {
 // Add or update booking entry
 async function addOrUpdateBooking(bookingId, certificationId, trainerName, employeeId, issueDate, userEmail) {
     try {
+        const bookingData = { certificationId, trainerName, employeeId, issueDate: new Date(issueDate), userEmail };
         if (bookingId) {
             const bookingRef = doc(db, "Bookings", bookingId);
-            await updateDoc(bookingRef, { certificationId, trainerName, employeeId, issueDate: new Date(issueDate), userEmail });
+            await updateDoc(bookingRef, bookingData);
+            await logDatabaseActivity('update', 'Bookings', bookingId, bookingData);
         } else {
-            await addDoc(collection(db, "Bookings"), { certificationId, trainerName, employeeId, issueDate: new Date(issueDate), userEmail });
+            const docRef = await addDoc(collection(db, "Bookings"), bookingData);
+            await logDatabaseActivity('create', 'Bookings', docRef.id, bookingData);
         }
         fetchBookingData();
     } catch (error) {
@@ -144,11 +156,14 @@ async function addOrUpdateBooking(bookingId, certificationId, trainerName, emplo
 // Add or update order entry
 async function addOrUpdateOrder(orderId, orderUserEmail, quantity, orderDate, orderStatus, itemList, totalPrice) {
     try {
+        const orderData = { orderUserEmail, quantity, orderDate: new Date(orderDate), orderStatus, itemList, totalPrice };
         if (orderId) {
             const orderRef = doc(db, "Orders", orderId);
-            await updateDoc(orderRef, { orderUserEmail, quantity, orderDate: new Date(orderDate), orderStatus, itemList, totalPrice });
+            await updateDoc(orderRef, orderData);
+            await logDatabaseActivity('update', 'Orders', orderId, orderData);
         } else {
-            await addDoc(collection(db, "Orders"), { orderUserEmail, quantity, orderDate: new Date(orderDate), orderStatus, itemList, totalPrice });
+            const docRef = await addDoc(collection(db, "Orders"), orderData);
+            await logDatabaseActivity('create', 'Orders', docRef.id, orderData);
         }
         fetchOrderingData();
     } catch (error) {
@@ -160,11 +175,14 @@ async function addOrUpdateOrder(orderId, orderUserEmail, quantity, orderDate, or
 // Add or update delivery entry
 async function addOrUpdateDelivery(deliveryId, bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus) {
     try {
+        const deliveryData = { bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus };
         if (deliveryId) {
             const deliveryRef = doc(db, "Deliveries", deliveryId);
-            await updateDoc(deliveryRef, { bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus });
+            await updateDoc(deliveryRef, deliveryData);
+            await logDatabaseActivity('update', 'Deliveries', deliveryId, deliveryData);
         } else {
-            await addDoc(collection(db, "Deliveries"), { bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus });
+            const docRef = await addDoc(collection(db, "Deliveries"), deliveryData);
+            await logDatabaseActivity('create', 'Deliveries', docRef.id, deliveryData);
         }
         fetchDeliveryData();
     } catch (error) {
@@ -177,6 +195,7 @@ async function addOrUpdateDelivery(deliveryId, bookingIds, orderingIds, inventor
 async function deleteBooking(bookingId) {
     try {
         await deleteDoc(doc(db, "Bookings", bookingId));
+        await logDatabaseActivity('delete', 'Bookings', bookingId, {});
         fetchBookingData();
     } catch (error) {
         console.error("Error deleting booking: ", error.code, error.message);
@@ -188,6 +207,7 @@ async function deleteBooking(bookingId) {
 async function deleteOrder(orderId) {
     try {
         await deleteDoc(doc(db, "Orders", orderId));
+        await logDatabaseActivity('delete', 'Orders', orderId, {});
         fetchOrderingData();
     } catch (error) {
         console.error("Error deleting order: ", error.code, error.message);
@@ -199,6 +219,7 @@ async function deleteOrder(orderId) {
 async function deleteDelivery(deliveryId) {
     try {
         await deleteDoc(doc(db, "Deliveries", deliveryId));
+        await logDatabaseActivity('delete', 'Deliveries', deliveryId, {});
         fetchDeliveryData();
     } catch (error) {
         console.error("Error deleting delivery: ", error.code, error.message);

@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { logDatabaseActivity } from './reports.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -96,8 +97,10 @@ async function addOrUpdateCertification(certificationId, userEmail, estimatedCom
         if (certificationId) {
             const certificationRef = doc(db, "Certifications", certificationId);
             await updateDoc(certificationRef, certData);
+            await logDatabaseActivity('update', 'Certifications', certificationId, certData);
         } else {
-            await addDoc(collection(db, "Certifications"), certData);
+            const docRef = await addDoc(collection(db, "Certifications"), certData);
+            await logDatabaseActivity('create', 'Certifications', docRef.id, certData);
         }
         fetchCertificationData();
     } catch (error) {
@@ -111,6 +114,7 @@ async function addOrUpdateCertification(certificationId, userEmail, estimatedCom
 async function deleteCertification(certificationId) {
     try {
         await deleteDoc(doc(db, "Certifications", certificationId));
+        await logDatabaseActivity('delete', 'Certifications', certificationId, {});
         fetchCertificationData();
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);

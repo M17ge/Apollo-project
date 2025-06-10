@@ -1,7 +1,16 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { logDatabaseActivity } from './reports.js';
 
+// Then use it after database operations, for example:
+try {
+    const docRef = await addDoc(collection(db, "Inventory"), inventoryData);
+    await logDatabaseActivity('create', 'Inventory', docRef.id, inventoryData);
+    // ... rest of your code
+} catch (error) {
+    // ... error handling
+}
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
@@ -57,6 +66,7 @@ function initializeForms() {
                 longDescription,
                 imageAsset
             });
+            await logDatabaseActivity('create', 'Stock', stockId, { itemName, quantity, category, price, shortDescription, longDescription, imageAsset });
             console.log("Stock item added with ID: ", stockId);
             fetchStock(); // Refresh the stock list
         } catch (e) {

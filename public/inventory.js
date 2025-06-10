@@ -1,7 +1,16 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+import { logDatabaseActivity } from './reports.js';
 
+// Then use it after database operations, for example:
+try {
+    const docRef = await addDoc(collection(db, "Inventory"), inventoryData);
+    await logDatabaseActivity('create', 'Inventory', docRef.id, inventoryData);
+    // ... rest of your code
+} catch (error) {
+    // ... error handling
+}
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
@@ -88,9 +97,8 @@ function initializeForms() {
         const amount = document.getElementById('amount').value;
         const supplierID = document.getElementById('supplierID').value;
         const managerID = document.getElementById('managerID').value;
-
         try {
-            await addDoc(collection(db, "Inventory"), {
+            const docRef = await addDoc(collection(db, "Inventory"), {
                 inventoryID,
                 stockID,
                 quantity,
@@ -99,6 +107,7 @@ function initializeForms() {
                 supplierID,
                 managerID
             });
+            await logDatabaseActivity('create', 'Inventory', docRef.id, { inventoryID, stockID, quantity, dateBrought, amount, supplierID, managerID });
             // Generate a new inventory ID for the next entry
             const newInventoryRef = doc(collection(db, 'Inventory'));
             document.getElementById('inventoryID').value = newInventoryRef.id;
@@ -116,14 +125,14 @@ function initializeForms() {
         const information = document.getElementById('information').value;
         const invoiceID = document.getElementById('invoiceID').value;
         const dateSupplied = document.getElementById('dateSupplied').value;
-
         try {
-            await addDoc(collection(db, "Suppliers"), {
+            const docRef = await addDoc(collection(db, "Suppliers"), {
                 name,
                 information,
                 invoiceID,
                 dateSupplied
             });
+            await logDatabaseActivity('create', 'Suppliers', docRef.id, { name, information, invoiceID, dateSupplied });
             // Generate a new supplier ID for the next entry
             const newSupplierRef = doc(collection(db, 'Suppliers'));
             document.getElementById('supplierID').value = newSupplierRef.id;

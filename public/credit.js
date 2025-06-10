@@ -1,7 +1,16 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+import { logDatabaseActivity } from './reports.js';
 
+// Then use it after database operations, for example:
+try {
+    const docRef = await addDoc(collection(db, "Inventory"), inventoryData);
+    await logDatabaseActivity('create', 'Inventory', docRef.id, inventoryData);
+    // ... rest of your code
+} catch (error) {
+    // ... error handling
+}
 // Your web app's Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
@@ -83,8 +92,10 @@ async function addOrUpdateCredit(creditId, amount, interest, dateIssued, userEma
         if (creditId) {
             const creditRef = doc(db, "Credit", creditId);
             await updateDoc(creditRef, creditData);
+            await logDatabaseActivity('update', 'Credit', creditId, creditData);
         } else {
-            await addDoc(collection(db, "Credit"), creditData);
+            const docRef = await addDoc(collection(db, "Credit"), creditData);
+            await logDatabaseActivity('create', 'Credit', docRef.id, creditData);
         }
         fetchCreditData();
     } catch (error) {
@@ -98,6 +109,7 @@ async function addOrUpdateCredit(creditId, amount, interest, dateIssued, userEma
 async function deleteCredit(creditId) {
     try {
         await deleteDoc(doc(db, "Credit", creditId));
+        await logDatabaseActivity('delete', 'Credit', creditId, {});
         fetchCreditData();
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);

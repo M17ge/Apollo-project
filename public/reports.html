@@ -14,10 +14,35 @@
         <i class="fas fa-arrow-left"></i></a>
     <h2>Generate Reports</h2>
     <form id="reportForm">
-        <label for="adminId">Admin ID:</label>
-        <input type="text" id="adminId" readonly>
-        <button type="submit">Generate Report</button>
-    </form>
+    <label for="adminId">Admin ID:</label>
+    <input type="text" id="adminId" readonly>
+    
+    <label for="startDate">Start Date:</label>
+    <input type="date" id="startDate">
+    
+    <label for="endDate">End Date:</label>
+    <input type="date" id="endDate">
+    
+    <label for="collectionFilter">Collection:</label>
+    <select id="collectionFilter">
+        <option value="">All</option>
+        <option value="Inventory">Inventory</option>
+        <option value="Suppliers">Suppliers</option>
+        <option value="Credit">Credit</option>
+        <option value="Payments">Payments</option>
+        <option value="users">Users</option>
+    </select>
+    
+    <label for="actionFilter">Action:</label>
+    <select id="actionFilter">
+        <option value="">All</option>
+        <option value="create">Create</option>
+        <option value="update">Update</option>
+        <option value="delete">Delete</option>
+    </select>
+    
+    <button type="submit">Generate Report</button>
+</form>
     <br>
     <table id="reportTable">
         <thead>

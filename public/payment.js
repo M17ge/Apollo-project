@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { logDatabaseActivity } from './reports.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -104,8 +105,10 @@ async function addOrUpdatePayment(paymentID, managerID, paymentMethod, creditID,
         if (paymentID) {
             const paymentRef = doc(db, "Payments", paymentID);
             await updateDoc(paymentRef, { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
+            await logDatabaseActivity('update', 'Payments', paymentID, { managerID, paymentMethod, creditID, from, to, invoiceID, date });
         } else {
-            await addDoc(collection(db, "Payments"), { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
+            const docRef = await addDoc(collection(db, "Payments"), { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
+            await logDatabaseActivity('create', 'Payments', docRef.id, { managerID, paymentMethod, creditID, from, to, invoiceID, date });
         }
         fetchPayments();
     } catch (error) {
@@ -119,6 +122,7 @@ async function addOrUpdatePayment(paymentID, managerID, paymentMethod, creditID,
 async function deletePayment(paymentID) {
     try {
         await deleteDoc(doc(db, "Payments", paymentID));
+        await logDatabaseActivity('delete', 'Payments', paymentID, {});
         fetchPayments();
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);

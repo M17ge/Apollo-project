@@ -43,43 +43,99 @@ button:hover {
 
 .back-icon {
     display: inline-block;
-    margin: 10px 0;
-    color: #004d40;
+    margin: 15px 0;
+    color: #00796b;
     text-decoration: none;
+    transition: color 0.3s ease;
 }
 
 .back-icon:hover {
-    color: #00796b;
+    color: #004d40;
+}
+
+.back-icon i {
+    font-size: 24px;
 }
 
 form {
     display: flex;
     flex-direction: column;
-    margin-bottom: 20px;
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 77, 64, 0.1);
 }
 
 form label {
-    margin-top: 10px;
+    color: #00796b;
+    margin: 10px 0 5px;
+    font-weight: bold;
 }
 
-form input, form button {
-    margin-top: 5px;
+form input,
+form select {
     padding: 10px;
-    border: 1px solid #ccc;
+    margin: 5px 0 15px;
+    border: 1px solid #b2dfdb;
     border-radius: 4px;
-    font-size: 16px;
+    font-size: 14px;
+    background-color: #fff;
+    color: #004d40;
 }
 
-form button {
+form input:focus,
+form select:focus {
+    outline: none;
+    border-color: #00796b;
+    box-shadow: 0 0 5px rgba(0, 121, 107, 0.2);
+}
+
+form input[readonly] {
+    background-color: #e0f2f1;
+    cursor: not-allowed;
+}
+
+/* Report Table Enhancements */
+#reportTable {
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 77, 64, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#reportTable th {
     background-color: #00796b;
     color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 4px;
-    font-size: 16px;
-    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 14px;
 }
 
-form button:hover {
+#reportTable td {
+    border-bottom: 1px solid #b2dfdb;
+    font-size: 14px;
+}
+
+#reportTable tr:hover {
+    background-color: #e0f2f1;
+}
+
+/* Generate Report Button */
+form button[type="submit"] {
+    background-color: #00796b;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 15px;
+    text-transform: uppercase;
+}
+
+form button[type="submit"]:hover {
     background-color: #004d40;
 }
