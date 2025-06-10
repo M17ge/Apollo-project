@@ -3,14 +3,6 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { getFirestore, collection, getDocs, getDoc, doc, query, where, addDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 import { logDatabaseActivity } from './reports.js';
 
-// Then use it after database operations, for example:
-try {
-    const docRef = await addDoc(collection(db, "Inventory"), inventoryData);
-    await logDatabaseActivity('create', 'Inventory', docRef.id, inventoryData);
-    // ... rest of your code
-} catch (error) {
-    // ... error handling
-}
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
