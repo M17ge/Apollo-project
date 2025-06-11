@@ -1,16 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { logDatabaseActivity } from './reports.js';
 
-// Then use it after database operations, for example:
-try {
-    const docRef = await addDoc(collection(db, "Inventory"), inventoryData);
-    await logDatabaseActivity('create', 'Inventory', docRef.id, inventoryData);
-    // ... rest of your code
-} catch (error) {
-    // ... error handling
-}
 // Your web app's Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
@@ -49,6 +40,32 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Role-based page access control
+const allowedRoles = {
+  "payment.html": ["admin", "finance_manager"],
+  "credit.html": ["admin", "finance_manager"],
+  "delivery.html": ["admin", "dispatch_manager", "driver"],
+  "inventory.html": ["admin", "inventory_manager"],
+  "stock.html": ["admin", "inventory_manager"],
+  "learning.html": ["admin", "trainer"],
+  // Add more as needed
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
+    const userDoc = await getDoc(doc(db, "Users", user.uid));
+    const userRole = userDoc.exists() ? (userDoc.data().role || userDoc.data().userRole) : null;
+    const page = window.location.pathname.split('/').pop();
+    if (allowedRoles[page] && !allowedRoles[page].includes(userRole)) {
+      window.location.href = "404.html";
+    }
+  });
+});
+
 // Fetch and display credit data
 async function fetchCreditData() {
     try {
@@ -84,17 +101,41 @@ async function fetchCreditData() {
     }
 }
 
+// Log database activity
+async function logDatabaseActivity(action, collection, documentId, data) {
+    try {
+        const timestamp = new Date();
+        const logData = {
+            userId: auth.currentUser?.uid || 'unknown',
+            action: action,
+            timestamp: timestamp,
+            documentId: documentId,
+            collection: collection,
+            data: data,
+            authorizedBy: auth.currentUser?.uid || 'unknown',
+            editedBy: auth.currentUser?.email || 'unknown'
+        };
+        await addDoc(collection(db, "Reports"), logData);
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error logging activity: ", error.code || '', msg);
+        alert(`An error occurred while logging activity: ${msg}`);
+    }
+}
+
 // Add or update credit entry
 async function addOrUpdateCredit(creditId, amount, interest, dateIssued, userEmail, status) {
     try {
         const financeManager = document.getElementById('managerID').value;
         const creditData = { amount, interest, dateIssued: new Date(dateIssued), userEmail, status, financeManager };
+        let docRef;
         if (creditId) {
             const creditRef = doc(db, "Credit", creditId);
             await updateDoc(creditRef, creditData);
+            docRef = creditRef;
             await logDatabaseActivity('update', 'Credit', creditId, creditData);
         } else {
-            const docRef = await addDoc(collection(db, "Credit"), creditData);
+            docRef = await addDoc(collection(db, "Credit"), creditData);
             await logDatabaseActivity('create', 'Credit', docRef.id, creditData);
         }
         fetchCreditData();
@@ -108,7 +149,8 @@ async function addOrUpdateCredit(creditId, amount, interest, dateIssued, userEma
 // Delete credit entry
 async function deleteCredit(creditId) {
     try {
-        await deleteDoc(doc(db, "Credit", creditId));
+        const creditRef = doc(db, "Credit", creditId);
+        await deleteDoc(creditRef);
         await logDatabaseActivity('delete', 'Credit', creditId, {});
         fetchCreditData();
     } catch (error) {

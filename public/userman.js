@@ -1,16 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 import { getFirestore, collection, setDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
-import { logDatabaseActivity } from './reports.js';
 
-// Then use it after database operations, for example:
-try {
-    const docRef = await addDoc(collection(db, "Inventory"), inventoryData);
-    await logDatabaseActivity('create', 'Inventory', docRef.id, inventoryData);
-    // ... rest of your code
-} catch (error) {
-    // ... error handling
-}
 // Your web app's Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
@@ -236,5 +227,27 @@ async function fetchUsers() {
         });
     } catch (error) {
         console.error("Error fetching users: ", error);
+    }
+}
+
+// Log database activity
+async function logDatabaseActivity(action, collection, documentId, data) {
+    try {
+        const timestamp = new Date();
+        const logData = {
+            userId: auth.currentUser?.uid || 'unknown',
+            action: action,
+            timestamp: timestamp,
+            documentId: documentId,
+            collection: collection,
+            data: data,
+            authorizedBy: auth.currentUser?.uid || 'unknown',
+            editedBy: auth.currentUser?.email || 'unknown'
+        };
+        await addDoc(collection(db, "Reports"), logData);
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error logging activity: ", error.code || '', msg);
+        alert(`An error occurred while logging activity: ${msg}`);
     }
 }

@@ -23,7 +23,7 @@ onAuthStateChanged(auth, (user) => {
     } else {
         console.log('No user is signed in.');
         // Redirect to login page if not authenticated
-        window.location.href = 'Login.html';
+        window.location.href = 'index.html';
     }
 });
 // Function to toggle sidebar
@@ -56,7 +56,7 @@ window.toggleProfileDropdown = toggleProfileDropdown;
 function signOutUser() {
     signOut(auth).then(() => {
         console.log('User signed out.');
-        window.location.href = 'Login.html';
+        window.location.href = 'index.html';
     }).catch((error) => {
         console.error('Error signing out:', error);
     });

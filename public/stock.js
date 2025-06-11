@@ -1,16 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
-import { logDatabaseActivity } from './reports.js';
+import { getFirestore, collection, addDoc, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
-// Then use it after database operations, for example:
-try {
-    const docRef = await addDoc(collection(db, "Inventory"), inventoryData);
-    await logDatabaseActivity('create', 'Inventory', docRef.id, inventoryData);
-    // ... rest of your code
-} catch (error) {
-    // ... error handling
-}
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
@@ -41,6 +32,32 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Role-based page access control
+const allowedRoles = {
+  "payment.html": ["admin", "finance_manager"],
+  "credit.html": ["admin", "finance_manager"],
+  "delivery.html": ["admin", "dispatch_manager", "driver"],
+  "inventory.html": ["admin", "inventory_manager"],
+  "stock.html": ["admin", "inventory_manager"],
+  "learning.html": ["admin", "trainer"],
+  // Add more as needed
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
+    const userDoc = await getDoc(doc(db, "Users", user.uid));
+    const userRole = userDoc.exists() ? (userDoc.data().role || userDoc.data().userRole) : null;
+    const page = window.location.pathname.split('/').pop();
+    if (allowedRoles[page] && !allowedRoles[page].includes(userRole)) {
+      window.location.href = "404.html";
+    }
+  });
+});
+
 function initializeForms() {
     // Stock form submission
     document.getElementById('stockForm').addEventListener('submit', async (e) => {
@@ -54,10 +71,8 @@ function initializeForms() {
         const imageAsset = document.getElementById('imageAsset').value;
 
         try {
-            const stockRef = doc(collection(db, 'Stock'));
-            const stockId = stockRef.id;
-            await addDoc(collection(db, 'Stock'), {
-                stockId,
+            // Create a new stock document and get its ID for reference
+            const stockDocRef = await addDoc(collection(db, 'Stock'), {
                 itemName,
                 quantity,
                 category,
@@ -66,14 +81,37 @@ function initializeForms() {
                 longDescription,
                 imageAsset
             });
-            await logDatabaseActivity('create', 'Stock', stockId, { itemName, quantity, category, price, shortDescription, longDescription, imageAsset });
-            console.log("Stock item added with ID: ", stockId);
+            // Use the generated document ID as the stockId (for foreign key/reference)
+            await logDatabaseActivity('create', 'Stock', stockDocRef.id, { itemName, quantity, category, price, shortDescription, longDescription, imageAsset });
+            console.log("Stock item added with ID: ", stockDocRef.id);
             fetchStock(); // Refresh the stock list
         } catch (e) {
             console.error("Error adding stock item: ", e.code, e.message);
             alert(`An error occurred while adding the stock item: ${e.message}`);
         }
     });
+}
+
+// Log database activity
+async function logDatabaseActivity(action, collection, documentId, data) {
+    try {
+        const timestamp = new Date();
+        const logData = {
+            userId: auth.currentUser?.uid || 'unknown',
+            action: action,
+            timestamp: timestamp,
+            documentId: documentId,
+            collection: collection,
+            data: data,
+            authorizedBy: auth.currentUser?.uid || 'unknown',
+            editedBy: auth.currentUser?.email || 'unknown'
+        };
+        await addDoc(collection(db, "Reports"), logData);
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error logging activity: ", error.code || '', msg);
+        alert(`An error occurred while logging activity: ${msg}`);
+    }
 }
 
 // Fetch and display stock data

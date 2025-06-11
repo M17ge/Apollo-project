@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
-import { logDatabaseActivity } from './reports.js';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -45,6 +44,32 @@ document.addEventListener('DOMContentLoaded', () => {
         e.target.reset();
         delete e.target.dataset.paymentID;
     });
+});
+
+// Role-based page access control
+const allowedRoles = {
+  "payment.html": ["admin", "finance_manager"],
+  "credit.html": ["admin", "finance_manager"],
+  "delivery.html": ["admin", "dispatch_manager", "driver"],
+  "inventory.html": ["admin", "inventory_manager"],
+  "stock.html": ["admin", "inventory_manager"],
+  "learning.html": ["admin", "trainer"],
+  // Add more as needed
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
+    const userDoc = await getDoc(doc(db, "Users", user.uid));
+    const userRole = userDoc.exists() ? (userDoc.data().role || userDoc.data().userRole) : null;
+    const page = window.location.pathname.split('/').pop();
+    if (allowedRoles[page] && !allowedRoles[page].includes(userRole)) {
+      window.location.href = "404.html";
+    }
+  });
 });
 
 // Fetch and display payments
@@ -102,12 +127,14 @@ async function fetchPayments() {
 // Add or update payment entry
 async function addOrUpdatePayment(paymentID, managerID, paymentMethod, creditID, from, to, invoiceID, date) {
     try {
+        let docRef;
         if (paymentID) {
             const paymentRef = doc(db, "Payments", paymentID);
             await updateDoc(paymentRef, { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
+            docRef = paymentRef;
             await logDatabaseActivity('update', 'Payments', paymentID, { managerID, paymentMethod, creditID, from, to, invoiceID, date });
         } else {
-            const docRef = await addDoc(collection(db, "Payments"), { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
+            docRef = await addDoc(collection(db, "Payments"), { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
             await logDatabaseActivity('create', 'Payments', docRef.id, { managerID, paymentMethod, creditID, from, to, invoiceID, date });
         }
         fetchPayments();
@@ -121,7 +148,8 @@ async function addOrUpdatePayment(paymentID, managerID, paymentMethod, creditID,
 // Delete payment entry
 async function deletePayment(paymentID) {
     try {
-        await deleteDoc(doc(db, "Payments", paymentID));
+        const paymentRef = doc(db, "Payments", paymentID);
+        await deleteDoc(paymentRef);
         await logDatabaseActivity('delete', 'Payments', paymentID, {});
         fetchPayments();
     } catch (error) {
@@ -142,4 +170,26 @@ function editPayment(paymentID, managerID, paymentMethod, creditID, from, to, in
     document.getElementById('invoiceID').value = invoiceID;
     document.getElementById('date').value = date;
     document.getElementById('paymentForm').dataset.paymentID = paymentID;
+}
+
+// Log database activity
+async function logDatabaseActivity(action, collection, documentId, data) {
+    try {
+        const timestamp = new Date();
+        const logData = {
+            userId: auth.currentUser?.uid || 'unknown',
+            action: action,
+            timestamp: timestamp,
+            documentId: documentId,
+            collection: collection,
+            data: data,
+            authorizedBy: auth.currentUser?.uid || 'unknown',
+            editedBy: auth.currentUser?.email || 'unknown'
+        };
+        await addDoc(collection(db, "Reports"), logData);
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error logging activity: ", error.code || '', msg);
+        alert(`An error occurred while logging activity: ${msg}`);
+    }
 }

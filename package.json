@@ -1,0 +1,17 @@
+{
+  "name": "apollo-project-9c70b",
+  "version": "1.0.0",
+  "description": "Apollo Project Firebase Hosting Web App",
+  "main": "index.js",
+  "scripts": {
+    "start": "firebase serve --only hosting",
+    "build": "echo No build step necessary for static HTML/CSS/JS. If you use a bundler, add its build command here.",
+    "deploy": "npm run build && firebase deploy --only hosting"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "firebase-tools": "^13.0.0"
+  },
+  "dependencies": {}
+}

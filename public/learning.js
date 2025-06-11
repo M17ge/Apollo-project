@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
-import { logDatabaseActivity } from './reports.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -44,6 +43,32 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = "login.html";
         }
     });
+});
+
+// Role-based page access control
+const allowedRoles = {
+  "payment.html": ["admin", "finance_manager"],
+  "credit.html": ["admin", "finance_manager"],
+  "delivery.html": ["admin", "dispatch_manager", "driver"],
+  "inventory.html": ["admin", "inventory_manager"],
+  "stock.html": ["admin", "inventory_manager"],
+  "learning.html": ["admin", "trainer"],
+  // Add more as needed
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
+    const userDoc = await getDoc(doc(db, "Users", user.uid));
+    const userRole = userDoc.exists() ? (userDoc.data().role || userDoc.data().userRole) : null;
+    const page = window.location.pathname.split('/').pop();
+    if (allowedRoles[page] && !allowedRoles[page].includes(userRole)) {
+      window.location.href = "404.html";
+    }
+  });
 });
 
 // Fetch and display certification data
@@ -94,12 +119,14 @@ async function addOrUpdateCertification(certificationId, userEmail, estimatedCom
             trainerName,
             bookingId // Reference to Bookings collection
         };
+        let docRef;
         if (certificationId) {
             const certificationRef = doc(db, "Certifications", certificationId);
             await updateDoc(certificationRef, certData);
+            docRef = certificationRef;
             await logDatabaseActivity('update', 'Certifications', certificationId, certData);
         } else {
-            const docRef = await addDoc(collection(db, "Certifications"), certData);
+            docRef = await addDoc(collection(db, "Certifications"), certData);
             await logDatabaseActivity('create', 'Certifications', docRef.id, certData);
         }
         fetchCertificationData();
@@ -113,7 +140,8 @@ async function addOrUpdateCertification(certificationId, userEmail, estimatedCom
 // Delete certification entry
 async function deleteCertification(certificationId) {
     try {
-        await deleteDoc(doc(db, "Certifications", certificationId));
+        const certificationRef = doc(db, "Certifications", certificationId);
+        await deleteDoc(certificationRef);
         await logDatabaseActivity('delete', 'Certifications', certificationId, {});
         fetchCertificationData();
     } catch (error) {
@@ -139,6 +167,28 @@ window.editCertification = function(certificationId, userEmail, estimatedComplet
 
 // Delete certification entry (make sure it's globally accessible)
 window.deleteCertification = deleteCertification;
+
+// Log database activity
+async function logDatabaseActivity(action, collection, documentId, data) {
+    try {
+        const timestamp = new Date();
+        const logData = {
+            userId: auth.currentUser?.uid || 'unknown',
+            action: action,
+            timestamp: timestamp,
+            documentId: documentId,
+            collection: collection,
+            data: data,
+            authorizedBy: auth.currentUser?.uid || 'unknown',
+            editedBy: auth.currentUser?.email || 'unknown'
+        };
+        await addDoc(collection(db, "Reports"), logData);
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error logging activity: ", error.code || '', msg);
+        alert(`An error occurred while logging activity: ${msg}`);
+    }
+}
 
 // Event listener for form submission
 document.getElementById('certificationForm').addEventListener('submit', function(event) {

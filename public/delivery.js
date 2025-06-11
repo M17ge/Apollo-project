@@ -1,16 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
-import { logDatabaseActivity } from './reports.js';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
-// Then use it after database operations, for example:
-try {
-    const docRef = await addDoc(collection(db, "Inventory"), inventoryData);
-    await logDatabaseActivity('create', 'Inventory', docRef.id, inventoryData);
-    // ... rest of your code
-} catch (error) {
-    // ... error handling
-}
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
@@ -40,6 +31,32 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = "login.html";
         }
     });
+});
+
+// Role-based page access control
+const allowedRoles = {
+  "payment.html": ["admin", "finance_manager"],
+  "credit.html": ["admin", "finance_manager"],
+  "delivery.html": ["admin", "dispatch_manager", "driver"],
+  "inventory.html": ["admin", "inventory_manager"],
+  "stock.html": ["admin", "inventory_manager"],
+  "learning.html": ["admin", "trainer"],
+  // Add more as needed
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
+    const userDoc = await getDoc(doc(db, "Users", user.uid));
+    const userRole = userDoc.exists() ? (userDoc.data().role || userDoc.data().userRole) : null;
+    const page = window.location.pathname.split('/').pop();
+    if (allowedRoles[page] && !allowedRoles[page].includes(userRole)) {
+      window.location.href = "404.html";
+    }
+  });
 });
 
 // Fetch and display booking data
@@ -138,12 +155,14 @@ async function fetchDeliveryData() {
 async function addOrUpdateBooking(bookingId, certificationId, trainerName, employeeId, issueDate, userEmail) {
     try {
         const bookingData = { certificationId, trainerName, employeeId, issueDate: new Date(issueDate), userEmail };
+        let docRef;
         if (bookingId) {
             const bookingRef = doc(db, "Bookings", bookingId);
             await updateDoc(bookingRef, bookingData);
+            docRef = bookingRef;
             await logDatabaseActivity('update', 'Bookings', bookingId, bookingData);
         } else {
-            const docRef = await addDoc(collection(db, "Bookings"), bookingData);
+            docRef = await addDoc(collection(db, "Bookings"), bookingData);
             await logDatabaseActivity('create', 'Bookings', docRef.id, bookingData);
         }
         fetchBookingData();
@@ -157,12 +176,14 @@ async function addOrUpdateBooking(bookingId, certificationId, trainerName, emplo
 async function addOrUpdateOrder(orderId, orderUserEmail, quantity, orderDate, orderStatus, itemList, totalPrice) {
     try {
         const orderData = { orderUserEmail, quantity, orderDate: new Date(orderDate), orderStatus, itemList, totalPrice };
+        let docRef;
         if (orderId) {
             const orderRef = doc(db, "Orders", orderId);
             await updateDoc(orderRef, orderData);
+            docRef = orderRef;
             await logDatabaseActivity('update', 'Orders', orderId, orderData);
         } else {
-            const docRef = await addDoc(collection(db, "Orders"), orderData);
+            docRef = await addDoc(collection(db, "Orders"), orderData);
             await logDatabaseActivity('create', 'Orders', docRef.id, orderData);
         }
         fetchOrderingData();
@@ -176,12 +197,14 @@ async function addOrUpdateOrder(orderId, orderUserEmail, quantity, orderDate, or
 async function addOrUpdateDelivery(deliveryId, bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus) {
     try {
         const deliveryData = { bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus };
+        let docRef;
         if (deliveryId) {
             const deliveryRef = doc(db, "Deliveries", deliveryId);
             await updateDoc(deliveryRef, deliveryData);
+            docRef = deliveryRef;
             await logDatabaseActivity('update', 'Deliveries', deliveryId, deliveryData);
         } else {
-            const docRef = await addDoc(collection(db, "Deliveries"), deliveryData);
+            docRef = await addDoc(collection(db, "Deliveries"), deliveryData);
             await logDatabaseActivity('create', 'Deliveries', docRef.id, deliveryData);
         }
         fetchDeliveryData();
@@ -194,7 +217,8 @@ async function addOrUpdateDelivery(deliveryId, bookingIds, orderingIds, inventor
 // Delete booking entry
 async function deleteBooking(bookingId) {
     try {
-        await deleteDoc(doc(db, "Bookings", bookingId));
+        const bookingRef = doc(db, "Bookings", bookingId);
+        await deleteDoc(bookingRef);
         await logDatabaseActivity('delete', 'Bookings', bookingId, {});
         fetchBookingData();
     } catch (error) {
@@ -206,7 +230,8 @@ async function deleteBooking(bookingId) {
 // Delete order entry
 async function deleteOrder(orderId) {
     try {
-        await deleteDoc(doc(db, "Orders", orderId));
+        const orderRef = doc(db, "Orders", orderId);
+        await deleteDoc(orderRef);
         await logDatabaseActivity('delete', 'Orders', orderId, {});
         fetchOrderingData();
     } catch (error) {
@@ -218,7 +243,8 @@ async function deleteOrder(orderId) {
 // Delete delivery entry
 async function deleteDelivery(deliveryId) {
     try {
-        await deleteDoc(doc(db, "Deliveries", deliveryId));
+        const deliveryRef = doc(db, "Deliveries", deliveryId);
+        await deleteDoc(deliveryRef);
         await logDatabaseActivity('delete', 'Deliveries', deliveryId, {});
         fetchDeliveryData();
     } catch (error) {
@@ -260,6 +286,28 @@ function editDelivery(deliveryId, bookingIds, orderingIds, inventoryIds, county,
     document.getElementById('vehiclePlate').value = vehiclePlate;
     document.getElementById('deliveryStatus').value = deliveryStatus;
     document.getElementById('deliveryForm').dataset.deliveryId = deliveryId;
+}
+
+// Log database activity
+async function logDatabaseActivity(action, collection, documentId, data) {
+    try {
+        const timestamp = new Date();
+        const logData = {
+            userId: auth.currentUser?.uid || 'unknown',
+            action: action,
+            timestamp: timestamp,
+            documentId: documentId,
+            collection: collection,
+            data: data,
+            authorizedBy: auth.currentUser?.uid || 'unknown',
+            editedBy: auth.currentUser?.email || 'unknown'
+        };
+        await addDoc(collection(db, "Reports"), logData);
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error logging activity: ", error.code || '', msg);
+        alert(`An error occurred while logging activity: ${msg}`);
+    }
 }
 
 // Event listener for booking form submission

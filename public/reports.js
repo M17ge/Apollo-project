@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 import { getFirestore, collection, getDocs, getDoc, doc, query, where, addDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
-import { logDatabaseActivity } from './reports.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -39,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Fetch and display user metadata (creation time, etc.)
-// ...existing code...
 async function fetchUserMetadata(userId) {
     try {
         // Use lowercase 'users' if that's your collection name
@@ -58,7 +56,7 @@ async function fetchUserMetadata(userId) {
         alert(`An error occurred while fetching user metadata: ${msg}`);
     }
 }
-// ...existing code...
+
 // Add this after your Firebase initialization
 
 async function logDatabaseActivity(action, collection, documentId, data) {
@@ -82,6 +80,7 @@ async function logDatabaseActivity(action, collection, documentId, data) {
         alert(`An error occurred while logging activity: ${msg}`);
     }
 }
+
 // Fetch and display reports (transactions)
 async function fetchReports() {
     try {
@@ -139,3 +138,29 @@ async function fetchReports() {
         alert(`An error occurred while fetching reports: ${msg}`);
     }
 }
+
+// Role-based page access control
+const allowedRoles = {
+  "payment.html": ["admin", "finance_manager"],
+  "credit.html": ["admin", "finance_manager"],
+  "delivery.html": ["admin", "dispatch_manager", "driver"],
+  "inventory.html": ["admin", "inventory_manager"],
+  "stock.html": ["admin", "inventory_manager"],
+  "learning.html": ["admin", "trainer"],
+  // Add more as needed
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
+    const userDoc = await getDoc(doc(db, "Users", user.uid));
+    const userRole = userDoc.exists() ? (userDoc.data().role || userDoc.data().userRole) : null;
+    const page = window.location.pathname.split('/').pop();
+    if (allowedRoles[page] && !allowedRoles[page].includes(userRole)) {
+      window.location.href = "404.html";
+    }
+  });
+});
