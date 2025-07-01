@@ -1,16 +1,16 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
 // Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
-    authDomain: "apollo-project-9c70b.firebaseapp.com",
-    projectId: "apollo-project-9c70b",
-    storageBucket: "apollo-project-9c70b.firebasestorage.app",
-    messagingSenderId: "89948471233",
-    appId: "1:89948471233:web:1cb2261333c6539a727940",
-    measurementId: "G-GR4K54E6FP"
+    apiKey: "AIzaSyA2asaFAVw0PSlJFbyuPbOd3Zao-yqSS4g",
+    authDomain: "apollo-mobile-7013d.firebaseapp.com",
+    projectId: "apollo-mobile-7013d",
+    storageBucket: "apollo-mobile-7013d.firebasestorage.app",
+    messagingSenderId: "1044454240066",
+    appId: "1:1044454240066:web:77e3984fb8fdfe6d2ea2db",
+    measurementId: "G-FCKNKS0L5Z"
 };
 
 // Initialize Firebase
@@ -207,3 +207,9 @@ document.getElementById('certificationForm').addEventListener('submit', function
     event.target.reset();
     delete event.target.dataset.certificationId;
 });
+
+// Only use these fields for Certifications:
+// - courseName: string
+// - description: string
+// - employeeID: string
+// Remove all other fields and logic related to userEmail, estimatedCompletionTime, issueDate, status, trainerId, trainerName, bookingId, etc.

@@ -1,15 +1,15 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
-    authDomain: "apollo-project-9c70b.firebaseapp.com",
-    projectId: "apollo-project-9c70b",
-    storageBucket: "apollo-project-9c70b.firebasestorage.app",
-    messagingSenderId: "89948471233",
-    appId: "1:89948471233:web:1cb2261333c6539a727940",
-    measurementId: "G-GR4K54E6FP"
+    apiKey: "AIzaSyA2asaFAVw0PSlJFbyuPbOd3Zao-yqSS4g",
+    authDomain: "apollo-mobile-7013d.firebaseapp.com",
+    projectId: "apollo-mobile-7013d",
+    storageBucket: "apollo-mobile-7013d.firebasestorage.app",
+    messagingSenderId: "1044454240066",
+    appId: "1:1044454240066:web:77e3984fb8fdfe6d2ea2db",
+    measurementId: "G-FCKNKS0L5Z"
   };
 
 // Initialize Firebase

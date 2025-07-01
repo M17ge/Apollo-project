@@ -1,16 +1,16 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
 // Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
-    authDomain: "apollo-project-9c70b.firebaseapp.com",
-    projectId: "apollo-project-9c70b",
-    storageBucket: "apollo-project-9c70b.firebasestorage.app",
-    messagingSenderId: "89948471233",
-    appId: "1:89948471233:web:1cb2261333c6539a727940",
-    measurementId: "G-GR4K54E6FP"
+  apiKey: "AIzaSyA2asaFAVw0PSlJFbyuPbOd3Zao-yqSS4g",
+  authDomain: "apollo-mobile-7013d.firebaseapp.com",
+  projectId: "apollo-mobile-7013d",
+  storageBucket: "apollo-mobile-7013d.firebasestorage.app",
+  messagingSenderId: "1044454240066",
+  appId: "1:1044454240066:web:77e3984fb8fdfe6d2ea2db",
+  measurementId: "G-FCKNKS0L5Z"
 };
 
 // Initialize Firebase
@@ -72,6 +72,19 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// Only use these fields for Payments:
+// - paymentID: string
+// - from: string
+// - to: string
+// - date: string
+// Remove all other fields and logic related to other properties.
+
+// Payments collection fields:
+// - paymentID: string
+// - from: string
+// - to: string
+// - date: string
+
 // Fetch and display payments
 async function fetchPayments() {
     try {
@@ -84,38 +97,19 @@ async function fetchPayments() {
         querySnapshot.forEach((docSnap) => {
             const payment = docSnap.data();
             const row = document.createElement('tr');
-            if (payment.paymentMethod === 'credit') {
-                row.innerHTML = `
-                    <td>${docSnap.id}</td>
-                    <td>${payment.managerID}</td>
-                    <td>${payment.paymentMethod}</td>
-                    <td>${payment.creditID}</td>
-                    <td>${payment.from}</td>
-                    <td>${payment.to}</td>
-                    <td>${payment.invoiceID}</td>
-                    <td>${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toLocaleDateString() : ''}</td>
-                    <td>
-                        <button onclick="editPayment('${docSnap.id}', '${payment.managerID}', '${payment.paymentMethod}', '${payment.creditID}', '${payment.from}', '${payment.to}', '${payment.invoiceID}', '${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toISOString().split('T')[0] : ''}')">Edit</button>
-                        <button onclick="deletePayment('${docSnap.id}')">Delete</button>
-                    </td>
-                `;
-                deliveredTableBody.appendChild(row);
-            } else {
-                row.innerHTML = `
-                    <td>${docSnap.id}</td>
-                    <td>${payment.managerID}</td>
-                    <td>${payment.paymentMethod}</td>
-                    <td>${payment.from}</td>
-                    <td>${payment.to}</td>
-                    <td>${payment.invoiceID}</td>
-                    <td>${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toLocaleDateString() : ''}</td>
-                    <td>
-                        <button onclick="editPayment('${docSnap.id}', '${payment.managerID}', '${payment.paymentMethod}', '${payment.creditID}', '${payment.from}', '${payment.to}', '${payment.invoiceID}', '${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toISOString().split('T')[0] : ''}')">Edit</button>
-                        <button onclick="deletePayment('${docSnap.id}')">Delete</button>
-                    </td>
-                `;
-                sentTableBody.appendChild(row);
-            }
+            row.innerHTML = `
+                <td>${docSnap.id}</td>
+                <td>${payment.managerID}</td>
+                <td>${payment.paymentMethod}</td>
+                <td>${payment.from}</td>
+                <td>${payment.to}</td>
+                <td>${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toLocaleDateString() : ''}</td>
+                <td>
+                    <button onclick="editPayment('${docSnap.id}', '${payment.managerID}', '${payment.paymentMethod}', '${payment.creditID}', '${payment.from}', '${payment.to}', '${payment.invoiceID}', '${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toISOString().split('T')[0] : ''}')">Edit</button>
+                    <button onclick="deletePayment('${docSnap.id}')">Delete</button>
+                </td>
+            `;
+            deliveredTableBody.appendChild(row);
         });
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);

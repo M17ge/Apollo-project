@@ -113,3 +113,17 @@ button.submit:active {
     background-color: rgb(217, 190, 34); /* Change background on hover */
     color: white; /* Change text color on hover */
 }
+.branding {
+  color: #b6cd01;
+  font-weight: bold;
+  margin-bottom: 0.5em;
+}
+.portal-desc {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 1em;
+}
+.portal-desc a {
+  color: #1B3838;
+  text-decoration: underline;
+}
