@@ -29,32 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Role-based page access control
-const allowedRoles = {
-  "payment.html": ["admin", "finance_manager"],
-  "credit.html": ["admin", "finance_manager"],
-  "delivery.html": ["admin", "dispatch_manager", "driver"],
-  "inventory.html": ["admin", "inventory_manager"],
-  "stock.html": ["admin", "inventory_manager"],
-  "learning.html": ["admin", "trainer"],
-  // Add more as needed
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-    const userDoc = await getDoc(doc(db, "Users", user.uid));
-    const userRole = userDoc.exists() ? (userDoc.data().role || userDoc.data().userRole) : null;
-    const page = window.location.pathname.split('/').pop();
-    if (allowedRoles[page] && !allowedRoles[page].includes(userRole)) {
-      window.location.href = "404.html";
-    }
-  });
-});
-
 // Log database activity
 async function logDatabaseActivity(action, collection, documentId, data) {
     try {
@@ -129,27 +103,22 @@ function initializeForms() {
     // Inventory form submission
     document.getElementById('inventoryForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const inventoryID = document.getElementById('inventoryID').value;
-        const stockID = document.getElementById('stockID').value;
-        const quantity = document.getElementById('quantity').value;
-        const dateBrought = document.getElementById('dateBrought').value;
-        const amount = document.getElementById('amount').value;
-        const supplierID = document.getElementById('supplierID').value;
-        const managerID = document.getElementById('managerID').value;
+        const Description = document.getElementById('Description').value;
+        const TimeOfArrival = document.getElementById('TimeOfArrival').value;
+        const TotalPrice = Number(document.getElementById('TotalPrice').value);
+        const products = document.getElementById('products').value.split(',').map(p => p.trim());
+        const supplier_id = document.getElementById('supplier_id').value;
         try {
-            const docRef = await addDoc(collection(db, "Inventory"), {
-                inventoryID,
-                stockID,
-                quantity,
-                dateBrought,
-                amount,
-                supplierID,
-                managerID
+            const docRef = await addDoc(collection(db, "inventory"), {
+                Description,
+                "Time of Arrival": new Date(TimeOfArrival),
+                "Total Price": TotalPrice,
+                products,
+                supplier_id
             });
-            await logDatabaseActivity('create', 'Inventory', docRef.id, { inventoryID, stockID, quantity, dateBrought, amount, supplierID, managerID });
-            // Generate a new inventory ID for the next entry
-            const newInventoryRef = doc(collection(db, 'Inventory'));
-            document.getElementById('inventoryID').value = newInventoryRef.id;
+            await logDatabaseActivity('create', 'inventory', docRef.id, { Description, "Time of Arrival": new Date(TimeOfArrival), "Total Price": TotalPrice, products, supplier_id });
+            fetchInventory();
+            document.getElementById('inventoryForm').reset();
         } catch (error) {
             const msg = error && error.message ? error.message : String(error);
             console.error("Error adding inventory: ", error.code || '', msg);
@@ -183,27 +152,28 @@ function initializeForms() {
     });
 
     // Fetch and display inventory data
-    (async () => {
-        try {
-            const querySnapshot = await getDocs(collection(db, "Inventory"));
-            const inventoryTableBody = document.getElementById('inventoryTable').getElementsByTagName('tbody')[0];
-            inventoryTableBody.innerHTML = '';
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                const row = inventoryTableBody.insertRow();
-                row.insertCell(0).textContent = data.inventoryID || '';
-                row.insertCell(1).textContent = data.stockID;
-                row.insertCell(2).textContent = data.quantity;
-                row.insertCell(3).textContent = data.dateBrought;
-                row.insertCell(4).textContent = data.amount;
-                row.insertCell(5).textContent = data.supplierID;
-                row.insertCell(6).textContent = data.managerID;
-                row.insertCell(7).textContent = 'Actions'; // Placeholder for actions
-            });
-        } catch (error) {
-            const msg = error && error.message ? error.message : String(error);
-            console.error("Error fetching inventory: ", error.code || '', msg);
-            alert(`An error occurred while fetching inventory: ${msg}`);
-        }
-    })();
+    fetchInventory();
+}
+
+async function fetchInventory() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "inventory"));
+        const inventoryTableBody = document.getElementById('inventoryTable').getElementsByTagName('tbody')[0];
+        inventoryTableBody.innerHTML = '';
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const row = inventoryTableBody.insertRow();
+            row.insertCell(0).textContent = docSnap.id;
+            row.insertCell(1).textContent = data.Description;
+            row.insertCell(2).textContent = data["Time of Arrival"] ? new Date(data["Time of Arrival"]).toLocaleString() : '';
+            row.insertCell(3).textContent = data["Total Price"];
+            row.insertCell(4).textContent = Array.isArray(data.products) ? data.products.join(', ') : '';
+            row.insertCell(5).textContent = data.supplier_id || '';
+            row.insertCell(6).textContent = 'Actions'; // Placeholder for actions
+        });
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error fetching inventory: ", error.code || '', msg);
+        alert(`An error occurred while fetching inventory: ${msg}`);
+    }
 }

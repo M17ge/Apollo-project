@@ -46,32 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Role-based page access control
-const allowedRoles = {
-  "payment.html": ["admin", "finance_manager"],
-  "credit.html": ["admin", "finance_manager"],
-  "delivery.html": ["admin", "dispatch_manager", "driver"],
-  "inventory.html": ["admin", "inventory_manager"],
-  "stock.html": ["admin", "inventory_manager"],
-  "learning.html": ["admin", "trainer"],
-  // Add more as needed
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-    const userDoc = await getDoc(doc(db, "Users", user.uid));
-    const userRole = userDoc.exists() ? (userDoc.data().role || userDoc.data().userRole) : null;
-    const page = window.location.pathname.split('/').pop();
-    if (allowedRoles[page] && !allowedRoles[page].includes(userRole)) {
-      window.location.href = "404.html";
-    }
-  });
-});
-
 // Only use these fields for Payments:
 // - paymentID: string
 // - from: string
@@ -88,28 +62,23 @@ document.addEventListener('DOMContentLoaded', () => {
 // Fetch and display payments
 async function fetchPayments() {
     try {
-        const querySnapshot = await getDocs(collection(db, "Payments"));
-        const deliveredTableBody = document.getElementById('deliveredTable').getElementsByTagName('tbody')[0];
-        const sentTableBody = document.getElementById('sentTable').getElementsByTagName('tbody')[0];
-        deliveredTableBody.innerHTML = '';
-        sentTableBody.innerHTML = '';
-
+        const querySnapshot = await getDocs(collection(db, "payments"));
+        const paymentsTableBody = document.getElementById('paymentsTable').getElementsByTagName('tbody')[0];
+        paymentsTableBody.innerHTML = '';
         querySnapshot.forEach((docSnap) => {
             const payment = docSnap.data();
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${docSnap.id}</td>
-                <td>${payment.managerID}</td>
-                <td>${payment.paymentMethod}</td>
-                <td>${payment.from}</td>
-                <td>${payment.to}</td>
-                <td>${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toLocaleDateString() : ''}</td>
-                <td>
-                    <button onclick="editPayment('${docSnap.id}', '${payment.managerID}', '${payment.paymentMethod}', '${payment.creditID}', '${payment.from}', '${payment.to}', '${payment.invoiceID}', '${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toISOString().split('T')[0] : ''}')">Edit</button>
-                    <button onclick="deletePayment('${docSnap.id}')">Delete</button>
-                </td>
+                <td>${payment['Approval manager']}</td>
+                <td>${payment.Status ? 'Approved' : 'Pending'}</td>
+                <td>${payment['approval time'] ? new Date(payment['approval time']).toLocaleString() : ''}</td>
+                <td>${payment.order_id}</td>
+                <td>${payment.inventory_id}</td>
+                <td>${payment['total amount']}</td>
+                <td>Actions</td>
             `;
-            deliveredTableBody.appendChild(row);
+            paymentsTableBody.appendChild(row);
         });
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);
@@ -186,4 +155,9 @@ async function logDatabaseActivity(action, collection, documentId, data) {
         console.error("Error logging activity: ", error.code || '', msg);
         alert(`An error occurred while logging activity: ${msg}`);
     }
+}
+
+// Call fetchPayments on load
+if (document.getElementById('paymentsTable')) {
+    fetchPayments();
 }

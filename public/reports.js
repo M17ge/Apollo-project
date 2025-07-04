@@ -138,29 +138,3 @@ async function fetchReports() {
         alert(`An error occurred while fetching reports: ${msg}`);
     }
 }
-
-// Role-based page access control
-const allowedRoles = {
-  "payment.html": ["admin", "finance_manager"],
-  "credit.html": ["admin", "finance_manager"],
-  "delivery.html": ["admin", "dispatch_manager", "driver"],
-  "inventory.html": ["admin", "inventory_manager"],
-  "stock.html": ["admin", "inventory_manager"],
-  "learning.html": ["admin", "trainer"],
-  // Add more as needed
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-    const userDoc = await getDoc(doc(db, "Users", user.uid));
-    const userRole = userDoc.exists() ? (userDoc.data().role || userDoc.data().userRole) : null;
-    const page = window.location.pathname.split('/').pop();
-    if (allowedRoles[page] && !allowedRoles[page].includes(userRole)) {
-      window.location.href = "404.html";
-    }
-  });
-});

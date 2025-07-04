@@ -20,69 +20,37 @@
     <div id="paymentFormContainer">
         <h2>Add Payment</h2>
         <form id="paymentForm">
-            <label for="paymentID">Payment ID:</label>
-            <input type="text" id="paymentID" name="paymentID" readonly>
-            <label for="managerID">Manager ID:</label>
-            <input type="text" id="managerID" name="managerID" readonly>
-            <label for="paymentMethod">Payment Method:</label>
-            <select id="paymentMethod" name="paymentMethod" required>
-                <option value="credit">Credit</option>
-                <option value="cash">Cash</option>
-                <option value="mobile">Mobile</option>
-            </select>
-            <label for="creditID">Credit ID:</label>
-            <input type="text" id="creditID" name="creditID">
-            <label for="from">From:</label>
-            <select id="from" name="from" required>
-                <option value="Apollo">Apollo</option>
-                <option value="Farmer">Farmer</option>
-            </select>
-            <label for="to">To:</label>
-            <select id="to" name="to" required>
-                <option value="Apollo">Apollo</option>
-                <option value="Supplier">Supplier</option>
-            </select>
-            <label for="invoiceID">Invoice ID:</label>
-            <input type="text" id="invoiceID" name="invoiceID" readonly>
-            <label for="date">Date:</label>
-            <input type="date" id="date" name="date" required>
+            <label for="approval_manager">Approval Manager:</label>
+            <input type="text" id="approval_manager" name="approval_manager" required>
+            <label for="Status">Status:</label>
+            <input type="checkbox" id="Status" name="Status">
+            <label for="approval_time">Approval Time:</label>
+            <input type="datetime-local" id="approval_time" name="approval_time" required>
+            <label for="order_id">Order ID:</label>
+            <input type="text" id="order_id" name="order_id" required>
+            <label for="inventory_id">Inventory ID:</label>
+            <input type="text" id="inventory_id" name="inventory_id" required>
+            <label for="total_amount">Total Amount:</label>
+            <input type="number" id="total_amount" name="total_amount" required>
             <button type="submit">Add Payment</button>
         </form>
     </div>
-    <h2>Delivered Payments</h2>
-    <table id="deliveredTable">
+    <h2>Payments Table</h2>
+    <table id="paymentsTable">
         <thead>
             <tr>
                 <th>Payment ID</th>
-                <th>Manager ID</th>
-                <th>Payment Method</th>
-                <th>Credit ID</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Date</th>
+                <th>Approval Manager</th>
+                <th>Status</th>
+                <th>Approval Time</th>
+                <th>Order ID</th>
+                <th>Inventory ID</th>
+                <th>Total Amount</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            <!-- Delivered payments data will be populated here -->
-        </tbody>
-    </table>
-    <h2>Sent Payments</h2>
-    <table id="sentTable">
-        <thead>
-            <tr>
-                <th>Payment ID</th>
-                <th>Manager ID</th>
-                <th>Payment Method</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Invoice ID</th>
-                <th>Date</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Sent payments data will be populated here -->
+            <!-- Payments data will be populated here -->
         </tbody>
     </table>
 </body>

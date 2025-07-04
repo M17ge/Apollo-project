@@ -8,17 +8,6 @@
     ],
     "rewrites": [
       { "source": "/", "destination": "/index.html" },
-      { "source": "/index.html", "destination": "/index.html" },
-      { "source": "/about.html", "destination": "/about.html" },
-      { "source": "/credit.html", "destination": "/credit.html" },
-      { "source": "/delivery.html", "destination": "/delivery.html" },
-      { "source": "/inventory.html", "destination": "/inventory.html" },
-      { "source": "/learning.html", "destination": "/learning.html" },
-      { "source": "/payment.html", "destination": "/payment.html" },
-      { "source": "/reports.html", "destination": "/reports.html" },
-      { "source": "/stock.html", "destination": "/stock.html" },
-      { "source": "/userman.html", "destination": "/userman.html" },
-      { "source": "/404.html", "destination": "/404.html" },
       { "source": "**", "destination": "/404.html" }
     ]
   }

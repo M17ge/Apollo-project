@@ -36,36 +36,33 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        const displayName = document.getElementById('displayName').value;
-        const phoneNumber = document.getElementById('phoneNumber').value;
-        const shortDescription = document.getElementById('shortDescription').value;
-        const longDescription = document.getElementById('longDescription').value;
-        const farmSize = document.getElementById('farmSize').value;
-        const county = document.getElementById('county').value;
-        const userRole = document.getElementById('userRole').value;
+        const F_Name = document.getElementById('F_Name').value;
+        const ID_NUMBER = document.getElementById('ID_NUMBER').value;
+        const Phone_Number = document.getElementById('Phone_Number').value;
+        const Crop = document.getElementById('Crop').value;
+        const County = document.getElementById('County').value;
+        const Role = document.getElementById('Role').value;
 
-        addUser(email, password, { displayName, phoneNumber, shortDescription, longDescription, farmSize, county, userRole });
+        addUser(email, password, { F_Name, ID_NUMBER, Phone_Number, Crop, County, Role });
     });
     // Update user form submission
     document.getElementById('updateUserForm').addEventListener('submit', function (event) {
         event.preventDefault();
         const userId = document.getElementById('userId_update').value;
-        const newDisplayName = document.getElementById('newDisplayName').value;
-        const newPhoneNumber = document.getElementById('newPhoneNumber').value;
-        const newShortDescription = document.getElementById('newShortDescription').value;
-        const newLongDescription = document.getElementById('newLongDescription').value;
-        const newFarmSize = document.getElementById('newFarmSize').value;
+        const newF_Name = document.getElementById('newF_Name').value;
+        const newID_NUMBER = document.getElementById('newID_NUMBER').value;
+        const newPhone_Number = document.getElementById('newPhone_Number').value;
+        const newCrop = document.getElementById('newCrop').value;
         const newCounty = document.getElementById('newCounty').value;
-        const newUserRole = document.getElementById('newUserRole').value;
+        const newRole = document.getElementById('newRole').value;
 
         updateUser(userId, {
-            displayName: newDisplayName,
-            phoneNumber: newPhoneNumber,
-            shortDescription: newShortDescription,
-            longDescription: newLongDescription,
-            farmSize: newFarmSize,
-            county: newCounty,
-            userRole: newUserRole
+            F_Name: newF_Name,
+            ID_NUMBER: newID_NUMBER,
+            "Phone Number": newPhone_Number,
+            Crop: newCrop,
+            County: newCounty,
+            Role: newRole
         });
     });
 
@@ -78,75 +75,33 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// Add a new user
+// Add a new farmer
 async function addUser(email, password, additionalData) {
     try {
-        // Validate input fields
-        if (!email || !password || password.length < 6) {
-            alert("Please provide a valid email and a password with at least 6 characters.");
+        if (!email) {
+            alert("Please provide a valid email.");
             return;
         }
-
-        // Create user in Firebase Authentication
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        // Update the user's display name in Firebase Authentication
-        try {
-            await updateProfile(user, { displayName: additionalData.displayName });
-        } catch (e) {
-            console.error("Error updating user profile:", e.code, e.message);
-            alert(`An error occurred while updating the user profile: ${e.message}`);
-            return;
-        }
-
-        // Log the user creation success
-        console.log("User created with ID: ", user.uid);
-
-        // Add the new user directly to the table in the DOM
-        const userTableBody = document.getElementById('userTable').getElementsByTagName('tbody')[0];
-        if (!userTableBody) {
-            console.error("User table body not found in the DOM.");
-            return;
-        }
-
-        const row = userTableBody.insertRow();
-        row.insertCell(0).textContent = user.uid; // Use UID as the unique identifier
-        row.insertCell(1).textContent = email;
-        row.insertCell(2).textContent = additionalData.displayName;
-        row.insertCell(3).textContent = additionalData.phoneNumber;
-        row.insertCell(4).textContent = additionalData.shortDescription;
-        row.insertCell(5).textContent = additionalData.longDescription;
-        row.insertCell(6).textContent = additionalData.farmSize;
-        row.insertCell(7).textContent = additionalData.county;
-        row.insertCell(8).textContent = additionalData.userRole;
-
-        // Store the user information in the "Farmers" collection in Firestore
-        try {
-            await setDoc(doc(db, "Farmers", user.uid), {
-                email: email,
-                displayName: additionalData.displayName,
-                phoneNumber: additionalData.phoneNumber,
-                shortDescription: additionalData.shortDescription,
-                longDescription: additionalData.longDescription,
-                farmSize: additionalData.farmSize,
-                county: additionalData.county,
-                userRole: additionalData.userRole
-            });
-            await logDatabaseActivity('create', 'Farmers', user.uid, additionalData);
-            console.log("User information stored in the 'Farmers' collection.");
-        } catch (e) {
-            console.error("Error storing user information in Firestore:", e.code, e.message);
-            alert(`An error occurred while storing the user information: ${e.message}`);
-        }
-
-        // Clear the form fields after submission
+        // Create a new farmer document in Firestore
+        const farmerData = {
+            email: email,
+            F_Name: additionalData.F_Name,
+            ID_NUMBER: Number(additionalData.ID_NUMBER),
+            "Phone Number": Number(additionalData.Phone_Number),
+            Crop: additionalData.Crop,
+            County: additionalData.County,
+            Role: "Farmer"
+        };
+        const docRef = await addDoc(collection(db, "farmers"), farmerData);
+        await logDatabaseActivity('create', 'farmers', docRef.id, farmerData);
+        fetchUsers();
         document.getElementById('addUserForm').reset();
     } catch (e) {
-        console.error("Error adding user:", e.code, e.message);
+        console.error("Error adding farmer:", e.code, e.message);
         alert(`An error occurred: ${e.message}`);
     }
 }
+
 // Update user profile
 async function updateUser(userId, updatedData) {
     try {
@@ -206,27 +161,26 @@ async function removeUser(userId) {
     }
 }
 
-// Fetch and display user data
+// Fetch and display farmer data
 async function fetchUsers() {
     try {
-        const querySnapshot = await getDocs(collection(db, "Farmers")); // Changed to "Farmers"
+        const querySnapshot = await getDocs(collection(db, "farmers"));
         const userTableBody = document.getElementById('userTable').getElementsByTagName('tbody')[0];
-        userTableBody.innerHTML = ''; // Clear existing data
+        userTableBody.innerHTML = '';
         querySnapshot.forEach((doc) => {
-            const user = doc.data();
+            const farmer = doc.data();
             const row = userTableBody.insertRow();
-            row.insertCell(0).textContent = doc.id; // Use UID as the document ID
-            row.insertCell(1).textContent = user.email;
-            row.insertCell(2).textContent = user.displayName;
-            row.insertCell(3).textContent = user.phoneNumber;
-            row.insertCell(4).textContent = user.shortDescription;
-            row.insertCell(5).textContent = user.longDescription;
-            row.insertCell(6).textContent = user.farmSize;
-            row.insertCell(7).textContent = user.county;
-            row.insertCell(8).textContent = user.userRole;
+            row.insertCell(0).textContent = doc.id;
+            row.insertCell(1).textContent = farmer.email;
+            row.insertCell(2).textContent = farmer.F_Name;
+            row.insertCell(3).textContent = farmer.ID_NUMBER;
+            row.insertCell(4).textContent = farmer["Phone Number"];
+            row.insertCell(5).textContent = farmer.Crop;
+            row.insertCell(6).textContent = farmer.County;
+            row.insertCell(7).textContent = farmer.Role;
         });
     } catch (error) {
-        console.error("Error fetching users: ", error);
+        console.error("Error fetching farmers: ", error);
     }
 }
 

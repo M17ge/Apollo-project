@@ -1,7 +1,9 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 
-// Your web app's Firebase configuration
+// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyA2asaFAVw0PSlJFbyuPbOd3Zao-yqSS4g",
     authDomain: "apollo-mobile-7013d.firebaseapp.com",
@@ -10,11 +12,13 @@ const firebaseConfig = {
     messagingSenderId: "1044454240066",
     appId: "1:1044454240066:web:77e3984fb8fdfe6d2ea2db",
     measurementId: "G-FCKNKS0L5Z"
-  };
+};
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 const auth = getAuth(app);
+const analytics = getAnalytics(app);
 
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('login-form');
@@ -35,8 +39,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Signed in
                 const user = userCredential.user;
                 console.log('User signed in:', user);
-                // Redirect to landing.html
-                window.location.href = 'landing.html';
+                // Redirect to Landing.html (case-sensitive)
+                window.location.href = 'Landing.html';
             })
             .catch((error) => {
                 const errorCode = error.code;

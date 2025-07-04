@@ -46,38 +46,36 @@
     </tbody>
 </table>
 
-    <h2>Ordering Management</h2>
-    <form id="orderingForm">
-        <label for="orderUserEmail">User Email:</label>
-        <input type="email" id="orderUserEmail" placeholder="User Email" required>
+    <h2>Order Management</h2>
+    <form id="orderForm">
+        <label for="farmer_id">Farmer ID:</label>
+        <input type="text" id="farmer_id" required>
+        <label for="payment">Payment (credit or paymentID):</label>
+        <input type="text" id="payment" required>
+        <label for="product_id">Product IDs (comma separated):</label>
+        <input type="text" id="product_id" required>
         <label for="quantity">Quantity:</label>
-        <input type="number" id="quantity" placeholder="Quantity" required>
-        <label for="orderDate">Date:</label>
-        <input type="date" id="orderDate" placeholder="Date" required>
-        <label for="orderStatus">Order Status:</label>
-        <select id="orderStatus" required>
-            <option value="ordered">Ordered</option>
-            <option value="dispatched">Dispatched</option>
-            <option value="on road">On Road</option>
-            <option value="delivered">Delivered</option>
-        </select>
-        <label for="itemList">Item List:</label>
-        <input type="text" id="itemList" placeholder="Item List" required>
-        <label for="totalPrice">Total Price:</label>
-        <input type="number" id="totalPrice" placeholder="Total Price" required>
+        <input type="number" id="quantity" required>
+        <label for="totalprice">Total Price:</label>
+        <input type="number" id="totalprice" required>
+        <label for="created_at">Created At:</label>
+        <input type="datetime-local" id="created_at" required>
+        <label for="ETA">ETA:</label>
+        <input type="datetime-local" id="ETA" required>
         <button type="submit">Add/Update Order</button>
     </form>
     <br>
-    <table id="orderingTable">
+    <table id="orderTable">
         <thead>
             <tr>
                 <th>Order ID</th>
-                <th>User Email</th>
+                <th>Farmer ID</th>
+                <th>Payment</th>
+                <th>Product IDs</th>
                 <th>Quantity</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Item List</th>
                 <th>Total Price</th>
+                <th>Created At</th>
+                <th>ETA</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -127,6 +125,47 @@
                 <th>Dispatch Manager ID</th>
                 <th>Vehicle Plate</th>
                 <th>Delivery Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be populated here -->
+        </tbody>
+    </table>
+
+    <h2>Dispatch Management</h2>
+    <form id="dispatchForm">
+        <label for="DisTim">Dispatch Time</label>
+        <input type="datetime-local" id="DisTim" required>
+        <label for="Dispatched">Dispatched</label>
+        <input type="checkbox" id="Dispatched">
+        <label for="Driver_id">Driver ID</label>
+        <input type="text" id="Driver_id" placeholder="Enter Driver Id" required>
+        <label for="Location">Location</label>
+        <input type="text" id="Location" placeholder="Location" required>
+        <label for="Manger_id">Manager ID</label>
+        <input type="text" id="Manger_id" placeholder="Enter DM/Driver_id" required>
+        <label for="Trainer_id">Trainer ID</label>
+        <input type="text" id="Trainer_id" placeholder="Trainer/order_id" required>
+        <label for="Vehicle">Vehicle</label>
+        <input type="text" id="Vehicle" placeholder="Vehicle" required>
+        <label for="order_id">Order ID</label>
+        <input type="text" id="order_id" placeholder="Order ID" required>
+        <button type="submit">Add/Update Dispatch</button>
+    </form>
+    <br>
+    <table id="dispatchTable">
+        <thead>
+            <tr>
+                <th>Dispatch ID</th>
+                <th>Dispatch Time</th>
+                <th>Dispatched</th>
+                <th>Driver ID</th>
+                <th>Location</th>
+                <th>Manager ID</th>
+                <th>Trainer ID</th>
+                <th>Vehicle</th>
+                <th>Order ID</th>
                 <th>Actions</th>
             </tr>
         </thead>

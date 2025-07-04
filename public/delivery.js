@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchBookingData();
             fetchOrderingData();
             fetchDeliveryData();
+            fetchDispatchData();
+            fetchOrderData();
         } else {
             console.log("No user is logged in");
             window.location.href = "login.html";
@@ -33,51 +35,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Role-based page access control
-const allowedRoles = {
-  "payment.html": ["admin", "finance_manager"],
-  "credit.html": ["admin", "finance_manager"],
-  "delivery.html": ["admin", "dispatch_manager", "driver"],
-  "inventory.html": ["admin", "inventory_manager"],
-  "stock.html": ["admin", "inventory_manager"],
-  "learning.html": ["admin", "trainer"],
-  // Add more as needed
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-    const userDoc = await getDoc(doc(db, "Users", user.uid));
-    const userRole = userDoc.exists() ? (userDoc.data().role || userDoc.data().userRole) : null;
-    const page = window.location.pathname.split('/').pop();
-    if (allowedRoles[page] && !allowedRoles[page].includes(userRole)) {
-      window.location.href = "404.html";
-    }
-  });
-});
-
 // Fetch and display booking data
 async function fetchBookingData() {
     try {
-        const querySnapshot = await getDocs(collection(db, "Bookings"));
+        const querySnapshot = await getDocs(collection(db, "bookings"));
         const bookingTableBody = document.getElementById('bookingTable').getElementsByTagName('tbody')[0];
         bookingTableBody.innerHTML = '';
-        querySnapshot.forEach((doc) => {
-            const booking = doc.data();
+        querySnapshot.forEach((docSnap) => {
+            const booking = docSnap.data();
+            const expectedStartTime = booking["Expected Start Time"] ? new Date(booking["Expected Start Time"]).toLocaleString() : '';
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${doc.id}</td>
-                <td>${booking.certificationId}</td>
-                <td>${booking.trainerName}</td>
-                <td>${booking.employeeId}</td>
-                <td>${booking.issueDate && booking.issueDate.seconds ? new Date(booking.issueDate.seconds * 1000).toLocaleDateString() : ''}</td>
-                <td>${booking.userEmail}</td>
+                <td>${docSnap.id}</td>
+                <td>${booking.certification_id || ''}</td>
+                <td>${booking.farmer_id || ''}</td>
+                <td>${booking.trainer_id || ''}</td>
+                <td>${booking.status ? 'Active' : 'Inactive'}</td>
+                <td>${expectedStartTime}</td>
                 <td>
-                    <button onclick="editBooking('${doc.id}', '${booking.certificationId}', '${booking.trainerName}', '${booking.employeeId}', '${booking.issueDate && booking.issueDate.seconds ? new Date(booking.issueDate.seconds * 1000).toISOString().split('T')[0] : ''}', '${booking.userEmail}')">Edit</button>
-                    <button onclick="deleteBooking('${doc.id}')">Delete</button>
+                    <button onclick="editBooking('${docSnap.id}', '${booking.certification_id || ''}', '${booking.farmer_id || ''}', '${booking.trainer_id || ''}', '${booking.status}', '${booking["Expected Start Time"] || ''}')">Edit</button>
+                    <button onclick="deleteBooking('${docSnap.id}')">Delete</button>
                 </td>
             `;
             bookingTableBody.appendChild(row);
@@ -151,19 +128,85 @@ async function fetchDeliveryData() {
     }
 }
 
-// Add or update booking entry
-async function addOrUpdateBooking(bookingId, certificationId, trainerName, employeeId, issueDate, userEmail) {
+// Fetch and display dispatch data
+async function fetchDispatchData() {
     try {
-        const bookingData = { certificationId, trainerName, employeeId, issueDate: new Date(issueDate), userEmail };
+        const querySnapshot = await getDocs(collection(db, "dispatches"));
+        const dispatchTableBody = document.getElementById('dispatchTable').getElementsByTagName('tbody')[0];
+        dispatchTableBody.innerHTML = '';
+        querySnapshot.forEach((docSnap) => {
+            const dispatch = docSnap.data();
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${docSnap.id}</td>
+                <td>${dispatch.DisTim ? new Date(dispatch.DisTim).toLocaleString() : ''}</td>
+                <td>${dispatch.Dispatched ? 'Yes' : 'No'}</td>
+                <td>${dispatch.Driver_id || ''}</td>
+                <td>${dispatch.Location || ''}</td>
+                <td>${dispatch.Manger_id || ''}</td>
+                <td>${dispatch.Trainer_id || ''}</td>
+                <td>${dispatch.Vehicle || ''}</td>
+                <td>${dispatch.order_id || ''}</td>
+                <td>
+                    <button onclick="editDispatch('${docSnap.id}', '${dispatch.DisTim}', ${dispatch.Dispatched}, '${dispatch.Driver_id}', '${dispatch.Location}', '${dispatch.Manger_id}', '${dispatch.Trainer_id}', '${dispatch.Vehicle}', '${dispatch.order_id}')">Edit</button>
+                    <button onclick="deleteDispatch('${docSnap.id}')">Delete</button>
+                </td>
+            `;
+            dispatchTableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error("Error fetching dispatches: ", error.code, error.message);
+        alert(`An error occurred while fetching dispatches: ${error.message}`);
+    }
+}
+
+// Fetch and display order data
+async function fetchOrderData() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "order"));
+        const orderTableBody = document.getElementById('orderTable').getElementsByTagName('tbody')[0];
+        orderTableBody.innerHTML = '';
+        querySnapshot.forEach((docSnap) => {
+            const order = docSnap.data();
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${docSnap.id}</td>
+                <td>${order.farmer_id}</td>
+                <td>${order.payment}</td>
+                <td>${Array.isArray(order.product_id) ? order.product_id.join(', ') : ''}</td>
+                <td>${order.quantity}</td>
+                <td>${order.totalprice}</td>
+                <td>${order.created_at ? new Date(order.created_at).toLocaleString() : ''}</td>
+                <td>${order.ETA ? new Date(order.ETA).toLocaleString() : ''}</td>
+                <td>Actions</td>
+            `;
+            orderTableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error("Error fetching orders: ", error.code, error.message);
+        alert(`An error occurred while fetching orders: ${error.message}`);
+    }
+}
+
+// Add or update booking entry
+async function addOrUpdateBooking(bookingId, certification_id, farmer_id, trainer_id, status, expected_start_time) {
+    try {
+        const bookingData = {
+            certification_id,
+            farmer_id,
+            trainer_id,
+            status: status === 'true' || status === true,
+            "Expected Start Time": new Date(expected_start_time)
+        };
         let docRef;
         if (bookingId) {
-            const bookingRef = doc(db, "Bookings", bookingId);
+            const bookingRef = doc(db, "bookings", bookingId);
             await updateDoc(bookingRef, bookingData);
             docRef = bookingRef;
-            await logDatabaseActivity('update', 'Bookings', bookingId, bookingData);
+            await logDatabaseActivity('update', 'bookings', bookingId, bookingData);
         } else {
-            docRef = await addDoc(collection(db, "Bookings"), bookingData);
-            await logDatabaseActivity('create', 'Bookings', docRef.id, bookingData);
+            docRef = await addDoc(collection(db, "bookings"), bookingData);
+            await logDatabaseActivity('create', 'bookings', docRef.id, bookingData);
         }
         fetchBookingData();
     } catch (error) {
@@ -214,6 +257,36 @@ async function addOrUpdateDelivery(deliveryId, bookingIds, orderingIds, inventor
     }
 }
 
+// Add or update dispatch entry
+async function addOrUpdateDispatch(dispatchId, DisTim, Dispatched, Driver_id, Location, Manger_id, Trainer_id, Vehicle, order_id) {
+    try {
+        const dispatchData = {
+            DisTim: DisTim ? new Date(DisTim) : null,
+            Dispatched: !!Dispatched,
+            Driver_id,
+            Location,
+            Manger_id,
+            Trainer_id,
+            Vehicle,
+            order_id
+        };
+        let docRef;
+        if (dispatchId) {
+            const dispatchRef = doc(db, "dispatches", dispatchId);
+            await updateDoc(dispatchRef, dispatchData);
+            docRef = dispatchRef;
+            await logDatabaseActivity('update', 'dispatches', dispatchId, dispatchData);
+        } else {
+            docRef = await addDoc(collection(db, "dispatches"), dispatchData);
+            await logDatabaseActivity('create', 'dispatches', docRef.id, dispatchData);
+        }
+        fetchDispatchData();
+    } catch (error) {
+        console.error("Error adding/updating dispatch: ", error.code, error.message);
+        alert(`An error occurred while saving the dispatch: ${error.message}`);
+    }
+}
+
 // Delete booking entry
 async function deleteBooking(bookingId) {
     try {
@@ -253,13 +326,26 @@ async function deleteDelivery(deliveryId) {
     }
 }
 
+// Delete dispatch entry
+async function deleteDispatch(dispatchId) {
+    try {
+        const dispatchRef = doc(db, "dispatches", dispatchId);
+        await deleteDoc(dispatchRef);
+        await logDatabaseActivity('delete', 'dispatches', dispatchId, {});
+        fetchDispatchData();
+    } catch (error) {
+        console.error("Error deleting dispatch: ", error.code, error.message);
+        alert(`An error occurred while deleting the dispatch: ${error.message}`);
+    }
+}
+
 // Edit booking entry
-function editBooking(bookingId, certificationId, trainerName, employeeId, issueDate, userEmail) {
-    document.getElementById('certificationId').value = certificationId;
-    document.getElementById('trainerName').value = trainerName;
-    document.getElementById('employeeId').value = employeeId;
-    document.getElementById('issueDate').value = issueDate;
-    document.getElementById('userEmail').value = userEmail;
+function editBooking(bookingId, certification_id, farmer_id, trainer_id, status, expected_start_time) {
+    document.getElementById('certification_id').value = certification_id;
+    document.getElementById('farmer_id').value = farmer_id;
+    document.getElementById('trainer_id').value = trainer_id;
+    document.getElementById('status').value = status;
+    document.getElementById('expected_start_time').value = expected_start_time;
     document.getElementById('bookingForm').dataset.bookingId = bookingId;
 }
 
@@ -288,6 +374,19 @@ function editDelivery(deliveryId, bookingIds, orderingIds, inventoryIds, county,
     document.getElementById('deliveryForm').dataset.deliveryId = deliveryId;
 }
 
+// Edit dispatch entry
+window.editDispatch = function (dispatchId, DisTim, Dispatched, Driver_id, Location, Manger_id, Trainer_id, Vehicle, order_id) {
+    document.getElementById('DisTim').value = DisTim ? new Date(DisTim).toISOString().slice(0,16) : '';
+    document.getElementById('Dispatched').checked = Dispatched === true || Dispatched === 'true';
+    document.getElementById('Driver_id').value = Driver_id;
+    document.getElementById('Location').value = Location;
+    document.getElementById('Manger_id').value = Manger_id;
+    document.getElementById('Trainer_id').value = Trainer_id;
+    document.getElementById('Vehicle').value = Vehicle;
+    document.getElementById('order_id').value = order_id;
+    document.getElementById('dispatchForm').dataset.dispatchId = dispatchId;
+}
+
 // Log database activity
 async function logDatabaseActivity(action, collection, documentId, data) {
     try {
@@ -314,12 +413,12 @@ async function logDatabaseActivity(action, collection, documentId, data) {
 document.getElementById('bookingForm').addEventListener('submit', function(event) {
     event.preventDefault();
     const bookingId = event.target.dataset.bookingId || null;
-    const certificationId = document.getElementById('certificationId').value;
-    const trainerName = document.getElementById('trainerName').value;
-    const employeeId = document.getElementById('employeeId').value;
-    const issueDate = document.getElementById('issueDate').value;
-    const userEmail = document.getElementById('userEmail').value;
-    addOrUpdateBooking(bookingId, certificationId, trainerName, employeeId, issueDate, userEmail);
+    const certification_id = document.getElementById('certification_id').value;
+    const farmer_id = document.getElementById('farmer_id').value;
+    const trainer_id = document.getElementById('trainer_id').value;
+    const status = document.getElementById('status').value;
+    const expected_start_time = document.getElementById('expected_start_time').value;
+    addOrUpdateBooking(bookingId, certification_id, farmer_id, trainer_id, status, expected_start_time);
     event.target.reset();
     delete event.target.dataset.bookingId;
 });
@@ -356,6 +455,35 @@ document.getElementById('deliveryForm').addEventListener('submit', function(even
     event.target.reset();
     delete event.target.dataset.deliveryId;
 });
+
+// Event listener for dispatch form submission
+if (document.getElementById('dispatchForm')) {
+    document.getElementById('dispatchForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const dispatchId = event.target.dataset.dispatchId || null;
+        const DisTim = document.getElementById('DisTim').value;
+        const Dispatched = document.getElementById('Dispatched').checked;
+        const Driver_id = document.getElementById('Driver_id').value;
+        const Location = document.getElementById('Location').value;
+        const Manger_id = document.getElementById('Manger_id').value;
+        const Trainer_id = document.getElementById('Trainer_id').value;
+        const Vehicle = document.getElementById('Vehicle').value;
+        const order_id = document.getElementById('order_id').value;
+        addOrUpdateDispatch(dispatchId, DisTim, Dispatched, Driver_id, Location, Manger_id, Trainer_id, Vehicle, order_id);
+        event.target.reset();
+        delete event.target.dataset.dispatchId;
+    });
+}
+
+// Call fetchDispatchData on load
+if (document.getElementById('dispatchTable')) {
+    fetchDispatchData();
+}
+
+// Call fetchOrderData on load
+if (document.getElementById('orderTable')) {
+    fetchOrderData();
+}
 
 // Only use these fields for Bookings:
 // - bookingID: string
