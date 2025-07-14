@@ -1,20 +1,22 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 // Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
-    authDomain: "apollo-project-9c70b.firebaseapp.com",
-    projectId: "apollo-project-9c70b",
-    storageBucket: "apollo-project-9c70b.firebasestorage.app",
-    messagingSenderId: "89948471233",
-    appId: "1:89948471233:web:1cb2261333c6539a727940",
-    measurementId: "G-GR4K54E6FP"
+    apiKey: "AIzaSyA2asaFAVw0PSlJFbyuPbOd3Zao-yqSS4g",
+    authDomain: "apollo-mobile-7013d.firebaseapp.com",
+    projectId: "apollo-mobile-7013d",
+    storageBucket: "apollo-mobile-7013d.firebasestorage.app",
+    messagingSenderId: "1044454240066",
+    appId: "1:1044454240066:web:77e3984fb8fdfe6d2ea2db",
+    measurementId: "G-FCKNKS0L5Z"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
@@ -46,36 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Role-based page access control
-const allowedRoles = {
-  "payment.html": ["admin", "finance_manager"],
-  "credit.html": ["admin", "finance_manager"],
-  "delivery.html": ["admin", "dispatch_manager", "driver"],
-  "inventory.html": ["admin", "inventory_manager"],
-  "stock.html": ["admin", "inventory_manager"],
-  "learning.html": ["admin", "trainer"],
-  // Add more as needed
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-    const userDoc = await getDoc(doc(db, "Users", user.uid));
-    const userRole = userDoc.exists() ? (userDoc.data().role || userDoc.data().userRole) : null;
-    const page = window.location.pathname.split('/').pop();
-    if (allowedRoles[page] && !allowedRoles[page].includes(userRole)) {
-      window.location.href = "404.html";
-    }
-  });
-});
-
 // Fetch and display payments
 async function fetchPayments() {
     try {
-        const querySnapshot = await getDocs(collection(db, "Payments"));
+        const querySnapshot = await getDocs(collection(db, "payments"));
         const deliveredTableBody = document.getElementById('deliveredTable').getElementsByTagName('tbody')[0];
         const sentTableBody = document.getElementById('sentTable').getElementsByTagName('tbody')[0];
         deliveredTableBody.innerHTML = '';
@@ -129,13 +105,13 @@ async function addOrUpdatePayment(paymentID, managerID, paymentMethod, creditID,
     try {
         let docRef;
         if (paymentID) {
-            const paymentRef = doc(db, "Payments", paymentID);
+            const paymentRef = doc(db, "payments", paymentID);
             await updateDoc(paymentRef, { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
             docRef = paymentRef;
-            await logDatabaseActivity('update', 'Payments', paymentID, { managerID, paymentMethod, creditID, from, to, invoiceID, date });
+            await logDatabaseActivity('update', 'payments', paymentID, { managerID, paymentMethod, creditID, from, to, invoiceID, date });
         } else {
-            docRef = await addDoc(collection(db, "Payments"), { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
-            await logDatabaseActivity('create', 'Payments', docRef.id, { managerID, paymentMethod, creditID, from, to, invoiceID, date });
+            docRef = await addDoc(collection(db, "payments"), { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
+            await logDatabaseActivity('create', 'payments', docRef.id, { managerID, paymentMethod, creditID, from, to, invoiceID, date });
         }
         fetchPayments();
     } catch (error) {
@@ -148,9 +124,9 @@ async function addOrUpdatePayment(paymentID, managerID, paymentMethod, creditID,
 // Delete payment entry
 async function deletePayment(paymentID) {
     try {
-        const paymentRef = doc(db, "Payments", paymentID);
+        const paymentRef = doc(db, "payments", paymentID);
         await deleteDoc(paymentRef);
-        await logDatabaseActivity('delete', 'Payments', paymentID, {});
+        await logDatabaseActivity('delete', 'payments', paymentID, {});
         fetchPayments();
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);

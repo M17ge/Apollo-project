@@ -1,20 +1,22 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
-    authDomain: "apollo-project-9c70b.firebaseapp.com",
-    projectId: "apollo-project-9c70b",
-    storageBucket: "apollo-project-9c70b.firebasestorage.app",
-    messagingSenderId: "89948471233",
-    appId: "1:89948471233:web:1cb2261333c6539a727940",
-    measurementId: "G-GR4K54E6FP"
+    apiKey: "AIzaSyA2asaFAVw0PSlJFbyuPbOd3Zao-yqSS4g",
+    authDomain: "apollo-mobile-7013d.firebaseapp.com",
+    projectId: "apollo-mobile-7013d",
+    storageBucket: "apollo-mobile-7013d.firebasestorage.app",
+    messagingSenderId: "1044454240066",
+    appId: "1:1044454240066:web:77e3984fb8fdfe6d2ea2db",
+    measurementId: "G-FCKNKS0L5Z"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
@@ -40,36 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Role-based page access control
-const allowedRoles = {
-  "payment.html": ["admin", "finance_manager"],
-  "credit.html": ["admin", "finance_manager"],
-  "delivery.html": ["admin", "dispatch_manager", "driver"],
-  "inventory.html": ["admin", "inventory_manager"],
-  "stock.html": ["admin", "inventory_manager"],
-  "learning.html": ["admin", "trainer"],
-  // Add more as needed
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-    const userDoc = await getDoc(doc(db, "Users", user.uid));
-    const userRole = userDoc.exists() ? (userDoc.data().role || userDoc.data().userRole) : null;
-    const page = window.location.pathname.split('/').pop();
-    if (allowedRoles[page] && !allowedRoles[page].includes(userRole)) {
-      window.location.href = "404.html";
-    }
-  });
-});
-
 // Fetch and display credit data
 async function fetchCreditData() {
     try {
-        const querySnapshot = await getDocs(collection(db, "Credit"));
+        const querySnapshot = await getDocs(collection(db, "credit"));
         const creditTableBody = document.getElementById('creditTable').getElementsByTagName('tbody')[0];
         creditTableBody.innerHTML = '';
         querySnapshot.forEach((docSnap) => {
@@ -130,12 +106,12 @@ async function addOrUpdateCredit(creditId, amount, interest, dateIssued, userEma
         const creditData = { amount, interest, dateIssued: new Date(dateIssued), userEmail, status, financeManager };
         let docRef;
         if (creditId) {
-            const creditRef = doc(db, "Credit", creditId);
+            const creditRef = doc(db, "credit", creditId);
             await updateDoc(creditRef, creditData);
             docRef = creditRef;
             await logDatabaseActivity('update', 'Credit', creditId, creditData);
         } else {
-            docRef = await addDoc(collection(db, "Credit"), creditData);
+            docRef = await addDoc(collection(db, "credit"), creditData);
             await logDatabaseActivity('create', 'Credit', docRef.id, creditData);
         }
         fetchCreditData();
@@ -149,7 +125,7 @@ async function addOrUpdateCredit(creditId, amount, interest, dateIssued, userEma
 // Delete credit entry
 async function deleteCredit(creditId) {
     try {
-        const creditRef = doc(db, "Credit", creditId);
+        const creditRef = doc(db, "credit", creditId);
         await deleteDoc(creditRef);
         await logDatabaseActivity('delete', 'Credit', creditId, {});
         fetchCreditData();

@@ -1,20 +1,22 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
+import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 // Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
-    authDomain: "apollo-project-9c70b.firebaseapp.com",
-    projectId: "apollo-project-9c70b",
-    storageBucket: "apollo-project-9c70b.firebasestorage.app",
-    messagingSenderId: "89948471233",
-    appId: "1:89948471233:web:1cb2261333c6539a727940",
-    measurementId: "G-GR4K54E6FP"
+    apiKey: "AIzaSyA2asaFAVw0PSlJFbyuPbOd3Zao-yqSS4g",
+    authDomain: "apollo-mobile-7013d.firebaseapp.com",
+    projectId: "apollo-mobile-7013d",
+    storageBucket: "apollo-mobile-7013d.firebasestorage.app",
+    messagingSenderId: "1044454240066",
+    appId: "1:1044454240066:web:77e3984fb8fdfe6d2ea2db",
+    measurementId: "G-FCKNKS0L5Z"
 }
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
@@ -33,36 +35,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Role-based page access control
-const allowedRoles = {
-  "payment.html": ["admin", "finance_manager"],
-  "credit.html": ["admin", "finance_manager"],
-  "delivery.html": ["admin", "dispatch_manager", "driver"],
-  "inventory.html": ["admin", "inventory_manager"],
-  "stock.html": ["admin", "inventory_manager"],
-  "learning.html": ["admin", "trainer"],
-  // Add more as needed
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-    const userDoc = await getDoc(doc(db, "Users", user.uid));
-    const userRole = userDoc.exists() ? (userDoc.data().role || userDoc.data().userRole) : null;
-    const page = window.location.pathname.split('/').pop();
-    if (allowedRoles[page] && !allowedRoles[page].includes(userRole)) {
-      window.location.href = "404.html";
-    }
-  });
-});
-
 // Fetch and display booking data
 async function fetchBookingData() {
     try {
-        const querySnapshot = await getDocs(collection(db, "Bookings"));
+        const querySnapshot = await getDocs(collection(db, "bookings"));
         const bookingTableBody = document.getElementById('bookingTable').getElementsByTagName('tbody')[0];
         bookingTableBody.innerHTML = '';
         querySnapshot.forEach((doc) => {
@@ -91,7 +67,7 @@ async function fetchBookingData() {
 // Fetch and display ordering data
 async function fetchOrderingData() {
     try {
-        const querySnapshot = await getDocs(collection(db, "Orders"));
+        const querySnapshot = await getDocs(collection(db, "orders"));
         const orderingTableBody = document.getElementById('orderingTable').getElementsByTagName('tbody')[0];
         orderingTableBody.innerHTML = '';
         querySnapshot.forEach((doc) => {
@@ -121,7 +97,7 @@ async function fetchOrderingData() {
 // Fetch and display delivery data
 async function fetchDeliveryData() {
     try {
-        const querySnapshot = await getDocs(collection(db, "Deliveries"));
+        const querySnapshot = await getDocs(collection(db, "deliveries"));
         const deliveryTableBody = document.getElementById('deliveryTable').getElementsByTagName('tbody')[0];
         deliveryTableBody.innerHTML = '';
         querySnapshot.forEach((doc) => {
@@ -157,13 +133,13 @@ async function addOrUpdateBooking(bookingId, certificationId, trainerName, emplo
         const bookingData = { certificationId, trainerName, employeeId, issueDate: new Date(issueDate), userEmail };
         let docRef;
         if (bookingId) {
-            const bookingRef = doc(db, "Bookings", bookingId);
+            const bookingRef = doc(db, "bookings", bookingId);
             await updateDoc(bookingRef, bookingData);
             docRef = bookingRef;
-            await logDatabaseActivity('update', 'Bookings', bookingId, bookingData);
+            await logDatabaseActivity('update', 'bookings', bookingId, bookingData);
         } else {
-            docRef = await addDoc(collection(db, "Bookings"), bookingData);
-            await logDatabaseActivity('create', 'Bookings', docRef.id, bookingData);
+            docRef = await addDoc(collection(db, "bookings"), bookingData);
+            await logDatabaseActivity('create', 'bookings', docRef.id, bookingData);
         }
         fetchBookingData();
     } catch (error) {
@@ -178,13 +154,13 @@ async function addOrUpdateOrder(orderId, orderUserEmail, quantity, orderDate, or
         const orderData = { orderUserEmail, quantity, orderDate: new Date(orderDate), orderStatus, itemList, totalPrice };
         let docRef;
         if (orderId) {
-            const orderRef = doc(db, "Orders", orderId);
+            const orderRef = doc(db, "orders", orderId);
             await updateDoc(orderRef, orderData);
             docRef = orderRef;
-            await logDatabaseActivity('update', 'Orders', orderId, orderData);
+            await logDatabaseActivity('update', 'orders', orderId, orderData);
         } else {
-            docRef = await addDoc(collection(db, "Orders"), orderData);
-            await logDatabaseActivity('create', 'Orders', docRef.id, orderData);
+            docRef = await addDoc(collection(db, "orders"), orderData);
+            await logDatabaseActivity('create', 'orders', docRef.id, orderData);
         }
         fetchOrderingData();
     } catch (error) {
@@ -199,13 +175,13 @@ async function addOrUpdateDelivery(deliveryId, bookingIds, orderingIds, inventor
         const deliveryData = { bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus };
         let docRef;
         if (deliveryId) {
-            const deliveryRef = doc(db, "Deliveries", deliveryId);
+            const deliveryRef = doc(db, "deliveries", deliveryId);
             await updateDoc(deliveryRef, deliveryData);
             docRef = deliveryRef;
-            await logDatabaseActivity('update', 'Deliveries', deliveryId, deliveryData);
+            await logDatabaseActivity('update', 'deliveries', deliveryId, deliveryData);
         } else {
-            docRef = await addDoc(collection(db, "Deliveries"), deliveryData);
-            await logDatabaseActivity('create', 'Deliveries', docRef.id, deliveryData);
+            docRef = await addDoc(collection(db, "deliveries"), deliveryData);
+            await logDatabaseActivity('create', 'deliveries', docRef.id, deliveryData);
         }
         fetchDeliveryData();
     } catch (error) {
@@ -217,9 +193,9 @@ async function addOrUpdateDelivery(deliveryId, bookingIds, orderingIds, inventor
 // Delete booking entry
 async function deleteBooking(bookingId) {
     try {
-        const bookingRef = doc(db, "Bookings", bookingId);
+        const bookingRef = doc(db, "bookings", bookingId);
         await deleteDoc(bookingRef);
-        await logDatabaseActivity('delete', 'Bookings', bookingId, {});
+        await logDatabaseActivity('delete', 'bookings', bookingId, {});
         fetchBookingData();
     } catch (error) {
         console.error("Error deleting booking: ", error.code, error.message);
@@ -230,9 +206,9 @@ async function deleteBooking(bookingId) {
 // Delete order entry
 async function deleteOrder(orderId) {
     try {
-        const orderRef = doc(db, "Orders", orderId);
+        const orderRef = doc(db, "orders", orderId);
         await deleteDoc(orderRef);
-        await logDatabaseActivity('delete', 'Orders', orderId, {});
+        await logDatabaseActivity('delete', 'orders', orderId, {});
         fetchOrderingData();
     } catch (error) {
         console.error("Error deleting order: ", error.code, error.message);
@@ -243,9 +219,9 @@ async function deleteOrder(orderId) {
 // Delete delivery entry
 async function deleteDelivery(deliveryId) {
     try {
-        const deliveryRef = doc(db, "Deliveries", deliveryId);
+        const deliveryRef = doc(db, "deliveries", deliveryId);
         await deleteDoc(deliveryRef);
-        await logDatabaseActivity('delete', 'Deliveries', deliveryId, {});
+        await logDatabaseActivity('delete', 'deliveries', deliveryId, {});
         fetchDeliveryData();
     } catch (error) {
         console.error("Error deleting delivery: ", error.code, error.message);

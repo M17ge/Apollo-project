@@ -1,20 +1,21 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, updateProfile, deleteUser, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getFirestore, collection, setDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getFirestore, collection, setDoc, getDocs, updateDoc, deleteDoc, doc, addDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
-    authDomain: "apollo-project-9c70b.firebaseapp.com",
-    projectId: "apollo-project-9c70b",
-    storageBucket: "apollo-project-9c70b.firebasestorage.app",
-    messagingSenderId: "89948471233",
-    appId: "1:89948471233:web:1cb2261333c6539a727940",
-    measurementId: "G-GR4K54E6FP"
+  apiKey: "AIzaSyA2asaFAVw0PSlJFbyuPbOd3Zao-yqSS4g",
+  authDomain: "apollo-mobile-7013d.firebaseapp.com",
+  projectId: "apollo-mobile-7013d",
+  storageBucket: "apollo-mobile-7013d.firebasestorage.app",
+  messagingSenderId: "1044454240066",
+  appId: "1:1044454240066:web:77e3984fb8fdfe6d2ea2db",
+  measurementId: "G-FCKNKS0L5Z"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
@@ -121,9 +122,9 @@ async function addUser(email, password, additionalData) {
         row.insertCell(7).textContent = additionalData.county;
         row.insertCell(8).textContent = additionalData.userRole;
 
-        // Store the user information in the "Farmers" collection in Firestore
+        // Store the user information in the "farmers" collection in Firestore
         try {
-            await setDoc(doc(db, "Farmers", user.uid), {
+            await setDoc(doc(db, "farmers", user.uid), {
                 email: email,
                 displayName: additionalData.displayName,
                 phoneNumber: additionalData.phoneNumber,
@@ -133,8 +134,8 @@ async function addUser(email, password, additionalData) {
                 county: additionalData.county,
                 userRole: additionalData.userRole
             });
-            await logDatabaseActivity('create', 'Farmers', user.uid, additionalData);
-            console.log("User information stored in the 'Farmers' collection.");
+            await logDatabaseActivity('create', 'farmers', user.uid, additionalData);
+            console.log("User information stored in the 'farmers' collection.");
         } catch (e) {
             console.error("Error storing user information in Firestore:", e.code, e.message);
             alert(`An error occurred while storing the user information: ${e.message}`);
@@ -150,10 +151,10 @@ async function addUser(email, password, additionalData) {
 // Update user profile
 async function updateUser(userId, updatedData) {
     try {
-        // Update the user's document in the "Farmers" collection in Firestore
-        const userRef = doc(db, "Farmers", userId); // Changed to "Farmers"
+        // Update the user's document in the "farmers" collection in Firestore
+        const userRef = doc(db, "farmers", userId); // Changed to "farmers"
         await updateDoc(userRef, updatedData);
-        await logDatabaseActivity('update', 'Farmers', userId, updatedData);
+        await logDatabaseActivity('update', 'farmers', userId, updatedData);
         console.log(`User document with ID ${userId} updated in Firestore.`);
 
         // Update the user's information in the DOM table
@@ -187,9 +188,9 @@ async function updateUser(userId, updatedData) {
 async function removeUser(userId) {
     try {
         // Delete the user's document from Firestore
-        const userRef = doc(db, "Farmers", userId); // Changed to "Farmers"
+        const userRef = doc(db, "farmers", userId); // Changed to "farmers"
         await deleteDoc(userRef);
-        await logDatabaseActivity('delete', 'Farmers', userId, {});
+        await logDatabaseActivity('delete', 'farmers', userId, {});
         console.log(`User document with ID ${userId} deleted from Firestore.`);
 
         // Refresh the user list
@@ -209,7 +210,7 @@ async function removeUser(userId) {
 // Fetch and display user data
 async function fetchUsers() {
     try {
-        const querySnapshot = await getDocs(collection(db, "Farmers")); // Changed to "Farmers"
+        const querySnapshot = await getDocs(collection(db, "farmers")); // Changed to "farmers"
         const userTableBody = document.getElementById('userTable').getElementsByTagName('tbody')[0];
         userTableBody.innerHTML = ''; // Clear existing data
         querySnapshot.forEach((doc) => {
@@ -244,7 +245,7 @@ async function logDatabaseActivity(action, collection, documentId, data) {
             authorizedBy: auth.currentUser?.uid || 'unknown',
             editedBy: auth.currentUser?.email || 'unknown'
         };
-        await addDoc(collection(db, "Reports"), logData);
+        await addDoc(collection(db, "reports"), logData);
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);
         console.error("Error logging activity: ", error.code || '', msg);
