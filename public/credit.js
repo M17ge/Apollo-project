@@ -23,17 +23,8 @@ const db = getFirestore(app);
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            // Set the Finance Manager field (readonly)
-            const managerInput = document.createElement('input');
-            managerInput.type = "text";
-            managerInput.id = "managerID";
-            managerInput.placeholder = "Finance Manager";
-            managerInput.readOnly = true;
-            managerInput.value = user.email || user.uid;
-            // Insert as the first input in the form
-            const form = document.getElementById('creditForm');
-            form.insertBefore(managerInput, form.firstChild);
-
+            // Set the approvedBy field to current user's ID
+            document.getElementById('approvedBy').value = user.uid;
             initializeForms();
             fetchCreditData();
         } else {
@@ -45,29 +36,25 @@ document.addEventListener('DOMContentLoaded', () => {
 // Fetch and display credit data
 async function fetchCreditData() {
     try {
-        const querySnapshot = await getDocs(collection(db, "credit"));
+        const querySnapshot = await getDocs(collection(db, "credit_requests"));
         const creditTableBody = document.getElementById('creditTable').getElementsByTagName('tbody')[0];
         creditTableBody.innerHTML = '';
         querySnapshot.forEach((docSnap) => {
             const credit = docSnap.data();
-            // Repayment Value = ((100 + interest) * amount) / 100
-            const repaymentValue = ((100 + Number(credit.interest)) * Number(credit.amount)) / 100;
             const row = document.createElement('tr');
             row.innerHTML = `
     <td>${docSnap.id}</td>
-    <td>${credit.amount}</td>
-    <td>${credit.interest}</td>
-    <td>${repaymentValue.toFixed(2)}</td>
-    <td>${credit.dateIssued && credit.dateIssued.seconds ? new Date(credit.dateIssued.seconds * 1000).toLocaleDateString() : ''}</td>
-    <td>${credit.userEmail}</td>
-    <td>${credit.status}</td>
-    <td>${credit.financeManager || ''}</td>
+    <td>${credit.Amount || ''}</td>
+    <td>${credit.Approved_by || ''}</td>
+    <td>${credit.Cleared ? 'Yes' : 'No'}</td>
+    <td>${credit.Description_of_credit || ''}</td>
+    <td>${credit.farmer_id || ''}</td>
+    <td>${credit.order_id || ''}</td>
     <td>
-        <button onclick="editCredit('${docSnap.id}', ${credit.amount}, ${credit.interest}, '${credit.dateIssued && credit.dateIssued.seconds ? new Date(credit.dateIssued.seconds * 1000).toISOString().split('T')[0] : ''}', '${credit.userEmail}', '${credit.status}', '${credit.financeManager || ''}')">Edit</button>
+        <button onclick="editCredit('${docSnap.id}', '${credit.Amount || ''}', '${credit.Approved_by || ''}', ${credit.Cleared}, '${credit.Description_of_credit || ''}', '${credit.farmer_id || ''}', '${credit.order_id || ''}')">Edit</button>
         <button onclick="deleteCredit('${docSnap.id}')">Delete</button>
     </td>
 `;
-
             creditTableBody.appendChild(row);
         });
     } catch (error) {
@@ -100,19 +87,26 @@ async function logDatabaseActivity(action, collection, documentId, data) {
 }
 
 // Add or update credit entry
-async function addOrUpdateCredit(creditId, amount, interest, dateIssued, userEmail, status) {
+async function addOrUpdateCredit(creditId, amount, approvedBy, cleared, description, farmerId, orderId) {
     try {
-        const financeManager = document.getElementById('managerID').value;
-        const creditData = { amount, interest, dateIssued: new Date(dateIssued), userEmail, status, financeManager };
+        const creditData = { 
+            Amount: amount, 
+            Approved_by: approvedBy,
+            Cleared: cleared === 'true',
+            Description_of_credit: description,
+            farmer_id: farmerId,
+            order_id: orderId
+        };
+        
         let docRef;
         if (creditId) {
-            const creditRef = doc(db, "credit", creditId);
+            const creditRef = doc(db, "credit_requests", creditId);
             await updateDoc(creditRef, creditData);
             docRef = creditRef;
-            await logDatabaseActivity('update', 'Credit', creditId, creditData);
+            await logDatabaseActivity('update', 'credit_requests', creditId, creditData);
         } else {
-            docRef = await addDoc(collection(db, "credit"), creditData);
-            await logDatabaseActivity('create', 'Credit', docRef.id, creditData);
+            docRef = await addDoc(collection(db, "credit_requests"), creditData);
+            await logDatabaseActivity('create', 'credit_requests', docRef.id, creditData);
         }
         fetchCreditData();
     } catch (error) {
@@ -125,9 +119,9 @@ async function addOrUpdateCredit(creditId, amount, interest, dateIssued, userEma
 // Delete credit entry
 async function deleteCredit(creditId) {
     try {
-        const creditRef = doc(db, "credit", creditId);
+        const creditRef = doc(db, "credit_requests", creditId);
         await deleteDoc(creditRef);
-        await logDatabaseActivity('delete', 'Credit', creditId, {});
+        await logDatabaseActivity('delete', 'credit_requests', creditId, {});
         fetchCreditData();
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);
@@ -137,12 +131,14 @@ async function deleteCredit(creditId) {
 }
 
 // Edit credit entry
-window.editCredit = function (creditId, amount, interest, dateIssued, userEmail, status) {
+window.editCredit = function (creditId, amount, approvedBy, cleared, description, farmerId, orderId) {
+    document.getElementById('creditId').value = creditId;
     document.getElementById('amount').value = amount;
-    document.getElementById('interest').value = interest;
-    document.getElementById('dateIssued').value = dateIssued;
-    document.getElementById('userEmail').value = userEmail;
-    document.getElementById('status').value = status;
+    document.getElementById('approvedBy').value = approvedBy;
+    document.getElementById('cleared').value = cleared ? 'true' : 'false';
+    document.getElementById('description').value = description;
+    document.getElementById('farmerId').value = farmerId;
+    document.getElementById('orderId').value = orderId;
     document.getElementById('creditForm').dataset.creditId = creditId;
 }
 
@@ -153,13 +149,15 @@ window.deleteCredit = deleteCredit;
 function initializeForms() {
     document.getElementById('creditForm').addEventListener('submit', function (event) {
         event.preventDefault();
-        const creditId = event.target.dataset.creditId || null;
-        const amount = parseFloat(document.getElementById('amount').value);
-        const interest = parseFloat(document.getElementById('interest').value);
-        const dateIssued = document.getElementById('dateIssued').value;
-        const userEmail = document.getElementById('userEmail').value;
-        const status = document.getElementById('status').value;
-        addOrUpdateCredit(creditId, amount, interest, dateIssued, userEmail, status);
+        const creditId = document.getElementById('creditId').value || null;
+        const amount = document.getElementById('amount').value;
+        const approvedBy = document.getElementById('approvedBy').value;
+        const cleared = document.getElementById('cleared').value;
+        const description = document.getElementById('description').value;
+        const farmerId = document.getElementById('farmerId').value;
+        const orderId = document.getElementById('orderId').value;
+        
+        addOrUpdateCredit(creditId, amount, approvedBy, cleared, description, farmerId, orderId);
         event.target.reset();
         delete event.target.dataset.creditId;
     });

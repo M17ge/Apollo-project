@@ -35,10 +35,28 @@ button {
     border: none;
     padding: 5px 10px;
     cursor: pointer;
+    margin: 2px;
+    border-radius: 3px;
 }
 
 button:hover {
     background-color: #004d40;
+}
+
+.edit-button {
+    background-color: #0277bd;
+}
+
+.edit-button:hover {
+    background-color: #01579b;
+}
+
+.delete-button {
+    background-color: #e53935;
+}
+
+.delete-button:hover {
+    background-color: #b71c1c;
 }
 
 .back-icon {
@@ -60,6 +78,14 @@ form {
     display: flex;
     flex-direction: column;
     margin-bottom: 20px;
+    transition: background-color 0.3s ease;
+}
+
+form.highlight {
+    background-color: #b2dfdb;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 form label {

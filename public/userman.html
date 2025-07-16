@@ -24,13 +24,13 @@
             <input type="password" id="password" required>
             <label for="userRole">User Role:</label>
             <select id="userRole" name="userRole" required>
-                <option value="admin">Administrator</option>
-                <option value="finance_manager">Finance Manager</option>
-                <option value="dispatch_manager">Dispatch Manager</option>
-                <option value="driver">Driver</option>
-                <option value="inventory_manager">Inventory Manager</option>
-                <option value="trainer">Trainer</option>
-                <option value="farmer">Farmer</option>
+                <option value="Admin">Administrator</option>
+                <option value="Finance_Manager">Finance Manager</option>
+                <option value="Dispatch_Manager">Dispatch Manager</option>
+                <option value="Driver">Driver</option>
+                <option value="Inventory_Manager">Inventory Manager</option>
+                <option value="Trainer">Trainer</option>
+                <option value="Farmer">Farmer</option>
             </select>
             <label for="displayName">Display Name:</label>
             <input type="text" id="displayName">
@@ -48,28 +48,29 @@
         </form>
         <form id="updateUserForm">
             <label for="userId_update">User ID:</label>
-            <input type="text" id="userId_update" required>
-            <label for="newDisplayName">New Display Name:</label>
+            <input type="text" id="userId_update" readonly>
+            <input type="hidden" id="collectionName">
+            <label for="newDisplayName">Display Name:</label>
             <input type="text" id="newDisplayName">
-            <label for="newPhoneNumber">New Phone Number:</label>
+            <label for="newPhoneNumber">Phone Number:</label>
             <input type="text" id="newPhoneNumber">
-            <label for="newUserRole">New User Role:</label>
+            <label for="newUserRole">User Role:</label>
             <select id="newUserRole">
                 <option value="Farmer">Farmer</option>
                 <option value="Admin">Admin</option>
                 <option value="Driver">Driver</option>
-                <option value="Dispatch Manager">Dispatch Manager</option>
-                <option value="Inventory Manager">Inventory Manager</option>
-                <option value="Finance Manager">Finance Manager</option>
+                <option value="Dispatch_Manager">Dispatch Manager</option>
+                <option value="Inventory_Manager">Inventory Manager</option>
+                <option value="Finance_Manager">Finance Manager</option>
                 <option value="Trainer">Trainer</option>
             </select>
-            <label for="newShortDescription">New Short Description:</label>
+            <label for="newShortDescription">ID Number/Short Description:</label>
             <input type="text" id="newShortDescription">
-            <label for="newLongDescription">New Long Description:</label>
+            <label for="newLongDescription">Long Description:</label>
             <textarea id="newLongDescription"></textarea>
-            <label for="newFarmSize">New Farm Size:</label>
+            <label for="newFarmSize">Farm Size:</label>
             <input type="text" id="newFarmSize">
-            <label for="newCounty">New County:</label>
+            <label for="newCounty">County:</label>
             <input type="text" id="newCounty">
             <button type="submit">Update User</button>
         </form> 
@@ -86,11 +87,12 @@
                     <th>Email</th>
                     <th>Display Name</th>
                     <th>Phone Number</th>
-                    <th>Short Description</th>
+                    <th>ID Number/Description</th>
                     <th>Long Description</th>
                     <th>Farm Size</th>
                     <th>County</th>
                     <th>User Role</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>

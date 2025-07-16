@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             console.log("User is logged in:", user);
             initializeForms();
-            fetchStock();
+            fetchProducts();
         } else {
             console.log("No user is logged in");
             // Redirect to login page
@@ -35,35 +35,64 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initializeForms() {
-    // Stock form submission
-    document.getElementById('stockForm').addEventListener('submit', async (e) => {
+    // Product form submission
+    document.getElementById('productForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const itemName = document.getElementById('itemName').value;
-        const quantity = document.getElementById('quantity').value;
+        
+        // Get form values
+        const productId = document.getElementById('productId').value;
+        const name = document.getElementById('name').value;
+        const description = document.getElementById('description').value;
         const category = document.getElementById('category').value;
-        const price = document.getElementById('price').value;
-        const shortDescription = document.getElementById('shortDescription').value;
-        const longDescription = document.getElementById('longDescription').value;
-        const imageAsset = document.getElementById('imageAsset').value;
+        const price = parseFloat(document.getElementById('price').value);
+        const quantity = parseInt(document.getElementById('quantity').value);
+        const inventoryId = document.getElementById('inventory_id').value || null;
+        const arrived = document.getElementById('arrived').value === 'true';
 
         try {
-            // Create a new stock document and get its ID for reference
-            const stockDocRef = await addDoc(collection(db, 'stock'), {
-                itemName,
-                quantity,
+            // Create product data object
+            const productData = {
+                name,
+                description,
                 category,
                 price,
-                shortDescription,
-                longDescription,
-                imageAsset
-            });
-            // Use the generated document ID as the stockId (for foreign key/reference)
-            await logDatabaseActivity('create', 'stock', stockDocRef.id, { itemName, quantity, category, price, shortDescription, longDescription, imageAsset });
-            console.log("Stock item added with ID: ", stockDocRef.id);
-            fetchStock(); // Refresh the stock list
+                quantity,
+                arrived
+            };
+            
+            // Add inventory_id only if it has a value
+            if (inventoryId) {
+                productData.inventory_id = inventoryId;
+            }
+            
+            // Check if we're updating or creating
+            if (productId) {
+                // Update existing product
+                await updateDoc(doc(db, 'products', productId), productData);
+                await logDatabaseActivity('update', 'products', productId, productData);
+                console.log("Product updated with ID: ", productId);
+                alert("Product updated successfully!");
+            } else {
+                // Add created_at timestamp for new products
+                productData.created_at = serverTimestamp();
+                
+                // Create a new product document
+                const productDocRef = await addDoc(collection(db, 'products'), productData);
+                await logDatabaseActivity('create', 'products', productDocRef.id, productData);
+                console.log("Product added with ID: ", productDocRef.id);
+                alert("Product added successfully!");
+            }
+            
+            // Reset the form
+            document.getElementById('productForm').reset();
+            document.getElementById('productId').value = '';
+            document.getElementById('submitProduct').textContent = 'Add Product';
+            
+            // Refresh the products list
+            fetchProducts();
         } catch (e) {
-            console.error("Error adding stock item: ", e.code, e.message);
-            alert(`An error occurred while adding the stock item: ${e.message}`);
+            console.error("Error with product: ", e.code, e.message);
+            alert(`An error occurred: ${e.message}`);
         }
     });
 }
@@ -90,36 +119,117 @@ async function logDatabaseActivity(action, collection, documentId, data) {
     }
 }
 
-// Fetch and display stock data
-async function fetchStock() {
+// Fetch and display products data
+async function fetchProducts() {
     try {
-        const querySnapshot = await getDocs(collection(db, "stock"));
-        const inStockTableBody = document.getElementById('inStockTable').getElementsByTagName('tbody')[0];
+        const querySnapshot = await getDocs(collection(db, "products"));
+        const availableProductsTableBody = document.getElementById('availableProductsTable').getElementsByTagName('tbody')[0];
         const outOfStockTableBody = document.getElementById('outOfStockTable').getElementsByTagName('tbody')[0];
-        inStockTableBody.innerHTML = ''; // Clear existing data
-        outOfStockTableBody.innerHTML = ''; // Clear existing data
+        
+        // Clear existing data
+        availableProductsTableBody.innerHTML = '';
+        outOfStockTableBody.innerHTML = '';
 
         querySnapshot.forEach((doc) => {
-            const stock = doc.data();
+            const product = doc.data();
             const row = document.createElement('tr');
-            row.insertCell(0).textContent = stock.stockId;
-            row.insertCell(1).textContent = stock.itemName;
-            row.insertCell(2).textContent = stock.quantity;
-            row.insertCell(3).textContent = stock.category;
-            row.insertCell(4).textContent = stock.price;
-            row.insertCell(5).textContent = stock.shortDescription;
-            row.insertCell(6).textContent = stock.longDescription;
-            row.insertCell(7).textContent = stock.imageAsset;
-            row.insertCell(8).textContent = 'Actions'; // Placeholder for actions
+            
+            // Format created_at timestamp if it exists
+            let createdAtDisplay = '';
+            if (product.created_at && product.created_at.toDate) {
+                createdAtDisplay = product.created_at.toDate().toLocaleString();
+            }
+            
+            // Populate row cells
+            row.insertCell(0).textContent = doc.id;
+            row.insertCell(1).textContent = product.name || '';
+            row.insertCell(2).textContent = product.description || '';
+            row.insertCell(3).textContent = product.category || '';
+            row.insertCell(4).textContent = product.price || '';
+            row.insertCell(5).textContent = product.quantity || '';
+            row.insertCell(6).textContent = product.inventory_id || '';
+            row.insertCell(7).textContent = createdAtDisplay;
+            row.insertCell(8).textContent = product.arrived ? 'Arrived' : 'Not Arrived';
+            
+            // Add action buttons
+            const actionsCell = row.insertCell(9);
+            
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+            editBtn.className = 'btn-edit';
+            editBtn.onclick = () => editProduct(doc.id);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.className = 'btn-delete';
+            deleteBtn.onclick = () => deleteProduct(doc.id);
+            
+            actionsCell.appendChild(editBtn);
+            actionsCell.appendChild(document.createTextNode(' '));
+            actionsCell.appendChild(deleteBtn);
 
-            if (stock.quantity > 0) {
-                inStockTableBody.appendChild(row);
+            // Add to appropriate table based on quantity
+            if (product.quantity > 0) {
+                availableProductsTableBody.appendChild(row);
             } else {
                 outOfStockTableBody.appendChild(row);
             }
         });
     } catch (e) {
-        console.error("Error fetching stock data: ", e.code, e.message);
-        alert(`An error occurred while fetching stock data: ${e.message}`);
+        console.error("Error fetching products data: ", e.code, e.message);
+        alert(`An error occurred while fetching products data: ${e.message}`);
     }
 }
+
+// Edit product function
+async function editProduct(productId) {
+    try {
+        const productRef = doc(db, "products", productId);
+        const productSnap = await getDoc(productRef);
+        
+        if (productSnap.exists()) {
+            const productData = productSnap.data();
+            
+            // Populate form with product data
+            document.getElementById('productId').value = productId;
+            document.getElementById('name').value = productData.name || '';
+            document.getElementById('description').value = productData.description || '';
+            document.getElementById('category').value = productData.category || '';
+            document.getElementById('price').value = productData.price || '';
+            document.getElementById('quantity').value = productData.quantity || '';
+            document.getElementById('inventory_id').value = productData.inventory_id || '';
+            document.getElementById('arrived').value = productData.arrived ? 'true' : 'false';
+            
+            // Change button text to indicate update
+            document.getElementById('submitProduct').textContent = 'Update Product';
+            
+            // Scroll to form
+            document.getElementById('productForm').scrollIntoView({ behavior: 'smooth' });
+        } else {
+            console.error("Product not found");
+            alert("Product not found");
+        }
+    } catch (e) {
+        console.error("Error getting product: ", e.code, e.message);
+        alert(`An error occurred while getting product data: ${e.message}`);
+    }
+}
+
+// Delete product function
+async function deleteProduct(productId) {
+    if (confirm('Are you sure you want to delete this product?')) {
+        try {
+            await deleteDoc(doc(db, "products", productId));
+            await logDatabaseActivity('delete', 'products', productId, {});
+            alert("Product deleted successfully!");
+            fetchProducts(); // Refresh the products list
+        } catch (e) {
+            console.error("Error deleting product: ", e.code, e.message);
+            alert(`An error occurred while deleting the product: ${e.message}`);
+        }
+    }
+}
+
+// Make functions available globally for onclick handlers
+window.editProduct = editProduct;
+window.deleteProduct = deleteProduct;

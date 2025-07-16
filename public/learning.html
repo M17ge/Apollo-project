@@ -14,26 +14,14 @@
         <i class="fas fa-arrow-left"></i></a>
     <h2>Certification Management</h2>
     <form id="certificationForm">
-        <label for="userEmail">User Email:</label>
-        <input type="email" id="userEmail" placeholder="User Email" required>
-        <label for="estimatedCompletionTime">Estimated Completion Time:</label>
-        <input type="text" id="estimatedCompletionTime" placeholder="Estimated Completion Time" required>
-        <label for="courseName">Course Name:</label>
-        <input type="text" id="courseName" placeholder="Course Name" required>
-        <label for="issueDate">Issue Date:</label>
-        <input type="date" id="issueDate" placeholder="Issue Date" required>
-        <label for="description">Description:</label>
-        <textarea id="description" placeholder="Description" required></textarea>
-        <label for="status">Status:</label>
-        <select id="status" required>
-            <option value="Given">Given</option>
-            <option value="Learning">Learning</option>
-            <option value="Booked">Booked</option>
-        </select>
-        <label for="trainerId">Trainer ID:</label>
-        <input type="text" id="trainerId" placeholder="Trainer ID" required>
-        <label for="trainerName">Trainer Name:</label>
-        <input type="text" id="trainerName" placeholder="Trainer Name" required>
+        <label for="certId">Certification ID:</label>
+        <input type="text" id="certId" placeholder="Certification ID" readonly>
+        <label for="name">Name:</label>
+        <input type="text" id="name" placeholder="Certification Name" required>
+        <label for="duration">Duration:</label>
+        <input type="text" id="duration" placeholder="Duration (e.g., 3 months)" required>
+        <label for="price">Price:</label>
+        <input type="number" id="price" placeholder="Price" required>
         <button type="submit">Add/Update Certification</button>
     </form>
     <br>
@@ -41,14 +29,9 @@
         <thead>
             <tr>
                 <th>Certification ID</th>
-                <th>User Email</th>
-                <th>Estimated Completion Time</th>
-                <th>Course Name</th>
-                <th>Issue Date</th>
-                <th>Description</th>
-                <th>Status</th>
-                <th>Trainer ID</th>
-                <th>Trainer Name</th>
+                <th>Name</th>
+                <th>Duration</th>
+                <th>Price</th>
                 <th>Actions</th>
             </tr>
         </thead>

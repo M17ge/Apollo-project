@@ -1,28 +1,28 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
-// Your web app's Firebase configuration
+// Firebase configuration for apollo-mobile-7013d
 const firebaseConfig = {
-    apiKey: "AIzaSyAVhK5GNgwz-DsMilSapF-6OO4LPhyfLXA",
-    authDomain: "apollo-project-9c70b.firebaseapp.com",
-    projectId: "apollo-project-9c70b",
-    storageBucket: "apollo-project-9c70b.firebasestorage.app",
-    messagingSenderId: "89948471233",
-    appId: "1:89948471233:web:1cb2261333c6539a727940",
-    measurementId: "G-GR4K54E6FP"
+    apiKey: "AIzaSyA2asaFAVw0PSlJFbyuPbOd3Zao-yqSS4g",
+    authDomain: "apollo-mobile-7013d.firebaseapp.com",
+    projectId: "apollo-mobile-7013d",
+    storageBucket: "apollo-mobile-7013d.firebasestorage.app",
+    messagingSenderId: "1044454240066",
+    appId: "1:1044454240066:web:77e3984fb8fdfe6d2ea2db",
+    measurementId: "G-FCKNKS0L5Z"
 };
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const auth = getAuth(app);
 // Check if user is authenticated
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        console.log('User is signed in:', user);
-        // Fetch and display items from Firestore
-      //  fetchItems();
+        console.log("User is logged in:", user);
+        // User is logged in, show landing page
     } else {
-        console.log('No user is signed in.');
-        // Redirect to login page if not authenticated
+        // No user, redirect to login
         window.location.href = 'index.html';
     }
 });

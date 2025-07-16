@@ -12,38 +12,56 @@
 <body>
     <a href="Landing.html" class="back-icon" title="Back to Landing Page">
         <i class="fas fa-arrow-left"></i></a>
-    <h2>Stock Management</h2>
-    <form id="stockForm">
-        <label for="stockId">Stock ID:</label>
-        <input type="text" id="stockId" readonly>
-        <label for="itemName">Item Name:</label>
-        <input type="text" id="itemName" required>
-        <label for="quantity">Quantity:</label>
-        <input type="number" id="quantity" required>
+    <h2>Product Management</h2>
+    <form id="productForm">
+        <input type="hidden" id="productId">
+        
+        <label for="name">Product Name:</label>
+        <input type="text" id="name" required>
+        
+        <label for="description">Description:</label>
+        <textarea id="description" required></textarea>
+        
         <label for="category">Category:</label>
-        <input type="text" id="category" required>
+        <select id="category" required>
+            <option value="">Select a category</option>
+            <option value="seeds">Seeds</option>
+            <option value="fertilizer">Fertilizer</option>
+            <option value="tools">Tools</option>
+            <option value="pesticides">Pesticides</option>
+            <option value="other">Other</option>
+        </select>
+        
         <label for="price">Price:</label>
-        <input type="number" id="price" required>
-        <label for="shortDescription">Short Description:</label>
-        <input type="text" id="shortDescription">
-        <label for="longDescription">Long Description:</label>
-        <textarea id="longDescription"></textarea>
-        <label for="imageAsset">Image Asset:</label>
-        <input type="text" id="imageAsset" required>
-        <button type="submit">Add/Update Item</button>
+        <input type="number" id="price" required step="0.01">
+        
+        <label for="quantity">Quantity:</label>
+        <input type="number" id="quantity" required min="0">
+        
+        <label for="inventory_id">Inventory ID:</label>
+        <input type="text" id="inventory_id" placeholder="Enter inventory ID">
+        
+        <label for="arrived">Status:</label>
+        <select id="arrived" required>
+            <option value="true">Arrived</option>
+            <option value="false">Not Arrived</option>
+        </select>
+        
+        <button type="submit" id="submitProduct">Add Product</button>
     </form>
-    <h3>In Stock</h3>
-    <table id="inStockTable">
+    <h3>Available Products</h3>
+    <table id="availableProductsTable">
         <thead>
             <tr>
-                <th>Stock ID</th>
-                <th>Item Name</th>
-                <th>Quantity</th>
+                <th>Product ID</th>
+                <th>Name</th>
+                <th>Description</th>
                 <th>Category</th>
                 <th>Price</th>
-                <th>Short Description</th>
-                <th>Long Description</th>
-                <th>Image Asset</th>
+                <th>Quantity</th>
+                <th>Inventory ID</th>
+                <th>Created At</th>
+                <th>Status</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -51,18 +69,19 @@
             <!-- Data will be populated here -->
         </tbody>
     </table>
-    <h3>Out of Stock</h3>
+    <h3>Out of Stock Products</h3>
     <table id="outOfStockTable">
         <thead>
             <tr>
-                <th>Stock ID</th>
-                <th>Item Name</th>
-                <th>Quantity</th>
+                <th>Product ID</th>
+                <th>Name</th>
+                <th>Description</th>
                 <th>Category</th>
                 <th>Price</th>
-                <th>Short Description</th>
-                <th>Long Description</th>
-                <th>Image Asset</th>
+                <th>Quantity</th>
+                <th>Inventory ID</th>
+                <th>Created At</th>
+                <th>Status</th>
                 <th>Actions</th>
             </tr>
         </thead>

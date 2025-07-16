@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -54,78 +54,58 @@ async function logDatabaseActivity(action, collection, documentId, data) {
 }
 
 function initializeForms() {
-    // Generate and set invoice ID for supplier form
-    (async () => {
-        try {
-            const invoiceRef = doc(collection(db, 'Invoices'));
-            document.getElementById('invoiceID').value = invoiceRef.id;
-        } catch (error) {
-            const msg = error && error.message ? error.message : String(error);
-            console.error("Error generating invoice ID: ", error.code || '', msg);
-            alert(`An error occurred while generating invoice ID: ${msg}`);
-        }
-    })();
-
-    // Generate and set stock ID for inventory form
-    (async () => {
-        try {
-            const stockRef = doc(collection(db, 'Stocks'));
-            document.getElementById('stockID').value = stockRef.id;
-        } catch (error) {
-            const msg = error && error.message ? error.message : String(error);
-            console.error("Error generating stock ID: ", error.code || '', msg);
-            alert(`An error occurred while generating stock ID: ${msg}`);
-        }
-    })();
-
-    // Generate and set inventory ID for inventory form
-    (async () => {
-        try {
-            const inventoryRef = doc(collection(db, 'Inventory'));
-            document.getElementById('inventoryID').value = inventoryRef.id;
-        } catch (error) {
-            const msg = error && error.message ? error.message : String(error);
-            console.error("Error generating inventory ID: ", error.code || '', msg);
-            alert(`An error occurred while generating inventory ID: ${msg}`);
-        }
-    })();
-
-    // Generate and set supplier ID for supplier form
-    (async () => {
-        try {
-            const supplierRef = doc(collection(db, 'Suppliers'));
-            document.getElementById('supplierID').value = supplierRef.id;
-        } catch (error) {
-            const msg = error && error.message ? error.message : String(error);
-            console.error("Error generating supplier ID: ", error.code || '', msg);
-            alert(`An error occurred while generating supplier ID: ${msg}`);
-        }
-    })();
+    // Set current date as default for supplier form
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('dateSupplied').value = today;
 
     // Inventory form submission
     document.getElementById('inventoryForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const inventoryID = document.getElementById('inventoryID').value;
-        const stockID = document.getElementById('stockID').value;
-        const quantity = document.getElementById('quantity').value;
-        const dateBrought = document.getElementById('dateBrought').value;
-        const amount = document.getElementById('amount').value;
-        const supplierID = document.getElementById('supplierID').value;
-        const managerID = document.getElementById('managerID').value;
+        const description = document.getElementById('description').value;
+        const totalPrice = parseFloat(document.getElementById('totalPrice').value);
+        const productsText = document.getElementById('products').value;
+        
+        // Convert products text to array (comma separated values)
+        const products = productsText.split(',')
+            .map(item => item.trim())
+            .filter(item => item.length > 0);
+        
+        const supplier_id = document.getElementById('supplier').value;
+        const inventoryId = document.getElementById('inventoryId').value;
+        
         try {
-            const docRef = await addDoc(collection(db, "Inventory"), {
-                inventoryID,
-                stockID,
-                quantity,
-                dateBrought,
-                amount,
-                supplierID,
-                managerID
-            });
-            await logDatabaseActivity('create', 'Inventory', docRef.id, { inventoryID, stockID, quantity, dateBrought, amount, supplierID, managerID });
-            // Generate a new inventory ID for the next entry
-            const newInventoryRef = doc(collection(db, 'Inventory'));
-            document.getElementById('inventoryID').value = newInventoryRef.id;
+            // Create inventory object with the fields matching Firestore schema
+            const inventoryData = {
+                Description: description,
+                Time_of_Arrival: serverTimestamp(),
+                Total_Price: totalPrice,
+                products: products,
+                supplier_id: supplier_id
+            };
+            
+            let docRef;
+            
+            // Check if we're updating an existing document
+            if (inventoryId) {
+                // Update existing document
+                await updateDoc(doc(db, "inventory", inventoryId), inventoryData);
+                await logDatabaseActivity('update', 'inventory', inventoryId, inventoryData);
+                alert("Inventory updated successfully!");
+                // Reset form state for new submissions
+                document.getElementById('submitInventory').textContent = 'Add Inventory';
+                docRef = { id: inventoryId };
+            } else {
+                // Add a new document
+                docRef = await addDoc(collection(db, "inventory"), inventoryData);
+                await logDatabaseActivity('create', 'inventory', docRef.id, inventoryData);
+                alert("Inventory added successfully!");
+            }
+            
+            // Reset form
+            document.getElementById('inventoryForm').reset();
+            
+            // Update the inventory table
+            fetchInventoryData();
         } catch (error) {
             const msg = error && error.message ? error.message : String(error);
             console.error("Error adding inventory: ", error.code || '', msg);
@@ -138,48 +118,287 @@ function initializeForms() {
         e.preventDefault();
         const name = document.getElementById('name').value;
         const information = document.getElementById('information').value;
-        const invoiceID = document.getElementById('invoiceID').value;
         const dateSupplied = document.getElementById('dateSupplied').value;
+        const supplierId = document.getElementById('supplierId').value;
+        
         try {
-            const docRef = await addDoc(collection(db, "Suppliers"), {
+            // Create the farmer/supplier data object
+            const supplierData = {
                 name,
                 information,
-                invoiceID,
-                dateSupplied
-            });
-            await logDatabaseActivity('create', 'Suppliers', docRef.id, { name, information, invoiceID, dateSupplied });
-            // Generate a new supplier ID for the next entry
-            const newSupplierRef = doc(collection(db, 'Suppliers'));
-            document.getElementById('supplierID').value = newSupplierRef.id;
+                dateRegistered: dateSupplied,
+                role: 'supplier', // Adding a role to identify this as a supplier in the farmers collection
+                updatedAt: serverTimestamp()
+            };
+            
+            let docRef;
+            
+            // Check if we're updating an existing supplier
+            if (supplierId) {
+                // Update existing supplier
+                await updateDoc(doc(db, "farmers", supplierId), supplierData);
+                await logDatabaseActivity('update', 'farmers', supplierId, supplierData);
+                alert("Supplier updated successfully!");
+                // Reset form state for new submissions
+                document.getElementById('submitSupplier').textContent = 'Add Supplier';
+                docRef = { id: supplierId };
+            } else {
+                // Add a new supplier
+                docRef = await addDoc(collection(db, "farmers"), supplierData);
+                await logDatabaseActivity('create', 'farmers', docRef.id, supplierData);
+                alert("Supplier added successfully!");
+            }
+            
+            // Reset form
+            document.getElementById('supplierForm').reset();
+            document.getElementById('supplierId').value = '';
+            
+            // Set current date as default
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateSupplied').value = today;
+            
+            // Refresh supplier data in dropdown and table
+            fetchSupplierData();
+            
         } catch (error) {
             const msg = error && error.message ? error.message : String(error);
-            console.error("Error adding supplier: ", error.code || '', msg);
-            alert(`An error occurred while adding supplier: ${msg}`);
+            console.error("Error saving supplier: ", error.code || '', msg);
+            alert(`An error occurred while saving supplier: ${msg}`);
         }
     });
 
-    // Fetch and display inventory data
-    (async () => {
+    // Call the fetch functions to display data
+    fetchInventoryData();
+    fetchSupplierData();
+}
+
+// Define the fetchInventoryData function
+async function fetchInventoryData() {
+    try {
+        const inventoryTableBody = document.getElementById('inventoryTable').getElementsByTagName('tbody')[0];
+        inventoryTableBody.innerHTML = '';
+        
+        const querySnapshot = await getDocs(collection(db, "inventory"));
+        
+        if (querySnapshot.empty) {
+            console.log("No inventory records found");
+            return;
+        }
+        
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const row = inventoryTableBody.insertRow();
+            
+            // Insert cells based on Firestore schema
+            row.insertCell(0).textContent = doc.id || '';
+            row.insertCell(1).textContent = data.Description || '';
+            
+            // Format timestamp if it exists
+            let timeDisplay = '';
+            if (data.Time_of_Arrival && data.Time_of_Arrival.toDate) {
+                const date = data.Time_of_Arrival.toDate();
+                timeDisplay = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            }
+            row.insertCell(2).textContent = timeDisplay;
+            
+            row.insertCell(3).textContent = data.Total_Price || '';
+            
+            // Handle products array
+            let productsDisplay = '';
+            if (data.products && Array.isArray(data.products)) {
+                productsDisplay = data.products.join(', ');
+            } else if (data.products) {
+                productsDisplay = String(data.products);
+            }
+            row.insertCell(4).textContent = productsDisplay;
+            
+            row.insertCell(5).textContent = data.supplier_id || '';
+            
+            // Add action buttons
+            const actionsCell = row.insertCell(6);
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+            editBtn.className = 'btn btn-primary btn-sm mr-1';
+            editBtn.onclick = () => editInventory(doc.id, data);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.className = 'btn btn-danger btn-sm';
+            deleteBtn.onclick = () => deleteInventory(doc.id);
+            
+            actionsCell.appendChild(editBtn);
+            actionsCell.appendChild(document.createTextNode(' '));
+            actionsCell.appendChild(deleteBtn);
+        });
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error fetching inventory: ", error.code || '', msg);
+        alert(`An error occurred while fetching inventory: ${msg}`);
+    }
+}
+
+// Define the fetchSupplierData function
+async function fetchSupplierData() {
+    try {
+        // Update the dropdown
+        const supplierSelect = document.getElementById('supplier');
+        
+        // Clear existing options
+        while (supplierSelect.options.length > 1) {
+            supplierSelect.remove(1);
+        }
+        
+        // Fetch suppliers from farmers collection
+        const querySnapshot = await getDocs(collection(db, "farmers"));
+        
+        // Update the suppliers table
+        const supplierTableBody = document.getElementById('supplierTable').getElementsByTagName('tbody')[0];
+        supplierTableBody.innerHTML = '';
+        
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            
+            // Skip if not a supplier (if role is specified and not 'supplier')
+            if (data.role && data.role !== 'supplier') {
+                return;
+            }
+            
+            // Add to dropdown
+            const option = document.createElement('option');
+            option.value = doc.id;
+            option.textContent = data.name || doc.id; // Use name if available, otherwise use ID
+            supplierSelect.appendChild(option);
+            
+            // Add to table
+            const row = supplierTableBody.insertRow();
+            row.insertCell(0).textContent = doc.id;
+            row.insertCell(1).textContent = data.name || '';
+            row.insertCell(2).textContent = data.information || '';
+            
+            // Format date if it exists
+            let dateDisplay = '';
+            if (data.dateRegistered) {
+                if (data.dateRegistered.toDate) {
+                    // If it's a Firestore timestamp
+                    const date = data.dateRegistered.toDate();
+                    dateDisplay = date.toLocaleDateString();
+                } else {
+                    // If it's a string date
+                    dateDisplay = data.dateRegistered;
+                }
+            }
+            row.insertCell(3).textContent = dateDisplay;
+            
+            // Add action buttons
+            const actionsCell = row.insertCell(4);
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+            editBtn.className = 'btn btn-primary btn-sm mr-1';
+            editBtn.onclick = () => editSupplier(doc.id, data);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.className = 'btn btn-danger btn-sm';
+            deleteBtn.onclick = () => deleteSupplier(doc.id);
+            
+            actionsCell.appendChild(editBtn);
+            actionsCell.appendChild(document.createTextNode(' '));
+            actionsCell.appendChild(deleteBtn);
+        });
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error fetching suppliers: ", error.code || '', msg);
+        alert(`An error occurred while fetching suppliers: ${msg}`);
+    }
+}
+
+// Define functions for editing and deleting inventory items
+function editInventory(id, data) {
+    // Set form values for editing
+    document.getElementById('inventoryId').value = id;
+    document.getElementById('description').value = data.Description || '';
+    document.getElementById('totalPrice').value = data.Total_Price || '';
+    
+    // Handle products array
+    if (data.products && Array.isArray(data.products)) {
+        document.getElementById('products').value = data.products.join(', ');
+    } else if (data.products) {
+        document.getElementById('products').value = data.products;
+    } else {
+        document.getElementById('products').value = '';
+    }
+    
+    // Set supplier if available
+    if (data.supplier_id) {
+        const supplierSelect = document.getElementById('supplier');
+        for (let i = 0; i < supplierSelect.options.length; i++) {
+            if (supplierSelect.options[i].value === data.supplier_id) {
+                supplierSelect.selectedIndex = i;
+                break;
+            }
+        }
+    }
+    
+    // Change button text to indicate update
+    document.getElementById('submitInventory').textContent = 'Update Inventory';
+    
+    // Scroll to form
+    document.getElementById('inventoryForm').scrollIntoView();
+}
+
+async function deleteInventory(id) {
+    if (confirm('Are you sure you want to delete this inventory item?')) {
         try {
-            const querySnapshot = await getDocs(collection(db, "Inventory"));
-            const inventoryTableBody = document.getElementById('inventoryTable').getElementsByTagName('tbody')[0];
-            inventoryTableBody.innerHTML = '';
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                const row = inventoryTableBody.insertRow();
-                row.insertCell(0).textContent = data.inventoryID || '';
-                row.insertCell(1).textContent = data.stockID;
-                row.insertCell(2).textContent = data.quantity;
-                row.insertCell(3).textContent = data.dateBrought;
-                row.insertCell(4).textContent = data.amount;
-                row.insertCell(5).textContent = data.supplierID;
-                row.insertCell(6).textContent = data.managerID;
-                row.insertCell(7).textContent = 'Actions'; // Placeholder for actions
-            });
+            await deleteDoc(doc(db, "inventory", id));
+            alert('Inventory item deleted successfully');
+            fetchInventoryData(); // Refresh the table
         } catch (error) {
             const msg = error && error.message ? error.message : String(error);
-            console.error("Error fetching inventory: ", error.code || '', msg);
-            alert(`An error occurred while fetching inventory: ${msg}`);
+            console.error("Error deleting inventory: ", error.code || '', msg);
+            alert(`An error occurred while deleting inventory: ${msg}`);
         }
-    })();
+    }
+}
+
+// Define functions for editing and deleting suppliers
+function editSupplier(id, data) {
+    // Set form values for editing
+    document.getElementById('supplierId').value = id;
+    document.getElementById('name').value = data.name || '';
+    document.getElementById('information').value = data.information || '';
+    
+    // Handle date formatting
+    if (data.dateRegistered) {
+        let dateValue = '';
+        if (data.dateRegistered.toDate) {
+            // If it's a Firestore timestamp
+            const date = data.dateRegistered.toDate();
+            dateValue = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        } else {
+            // If it's a string date
+            dateValue = data.dateRegistered;
+        }
+        document.getElementById('dateSupplied').value = dateValue;
+    }
+    
+    // Change button text to indicate update
+    document.getElementById('submitSupplier').textContent = 'Update Supplier';
+    
+    // Scroll to form
+    document.getElementById('supplierForm').scrollIntoView();
+}
+
+async function deleteSupplier(id) {
+    if (confirm('Are you sure you want to delete this supplier?')) {
+        try {
+            await deleteDoc(doc(db, "farmers", id));
+            await logDatabaseActivity('delete', 'farmers', id, { id });
+            alert('Supplier deleted successfully');
+            fetchSupplierData(); // Refresh the table
+        } catch (error) {
+            const msg = error && error.message ? error.message : String(error);
+            console.error("Error deleting supplier: ", error.code || '', msg);
+            alert(`An error occurred while deleting supplier: ${msg}`);
+        }
+    }
 }

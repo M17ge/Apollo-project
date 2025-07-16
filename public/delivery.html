@@ -18,14 +18,17 @@
     <input type="text" id="bookingId" placeholder="Booking ID" readonly>
     <label for="certificationId">Certification ID:</label>
     <input type="text" id="certificationId" placeholder="Certification ID" required>
-    <label for="trainerName">Trainer Name:</label>
-    <input type="text" id="trainerName" placeholder="Trainer Name" required>
-    <label for="employeeId">Employee ID:</label>
-    <input type="text" id="employeeId" placeholder="Employee ID" required>
-    <label for="issueDate">Issue Date:</label>
-    <input type="date" id="issueDate" placeholder="Issue Date" required>
-    <label for="userEmail">User Email:</label>
-    <input type="email" id="userEmail" placeholder="User Email" required>
+    <label for="farmerId">Farmer ID:</label>
+    <input type="text" id="farmerId" placeholder="Farmer ID" required>
+    <label for="trainerId">Trainer ID:</label>
+    <input type="text" id="trainerId" placeholder="Trainer ID" required>
+    <label for="expectedStartTime">Expected Start Time:</label>
+    <input type="datetime-local" id="expectedStartTime" placeholder="Expected Start Time" required>
+    <label for="booked">Booked:</label>
+    <select id="booked" required>
+        <option value="true">Yes</option>
+        <option value="false">No</option>
+    </select>
     <button type="submit">Add/Update Booking</button>
 </form>
 <br>
@@ -34,10 +37,10 @@
         <tr>
             <th>Booking ID</th>
             <th>Certification ID</th>
-            <th>Trainer Name</th>
-            <th>Employee ID</th>
-            <th>Issue Date</th>
-            <th>User Email</th>
+            <th>Farmer ID</th>
+            <th>Trainer ID</th>
+            <th>Expected Start Time</th>
+            <th>Booked</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -48,23 +51,29 @@
 
     <h2>Ordering Management</h2>
     <form id="orderingForm">
-        <label for="orderUserEmail">User Email:</label>
-        <input type="email" id="orderUserEmail" placeholder="User Email" required>
+        <input type="hidden" id="orderId" name="orderId">
+        
+        <label for="eta">ETA (Expected Time of Arrival):</label>
+        <input type="datetime-local" id="eta" placeholder="ETA" required>
+        
+        <label for="location">Order Location:</label>
+        <input type="text" id="orderLocation" placeholder="Location" required>
+        
+        <label for="farmerId">Farmer ID:</label>
+        <input type="text" id="orderFarmerId" placeholder="Farmer ID" required>
+        
+        <label for="payment">Payment/Credit ID:</label>
+        <input type="text" id="payment" placeholder="Credit or Payment ID" required>
+        
+        <label for="productIds">Product IDs (comma separated):</label>
+        <textarea id="productIds" placeholder="Enter product IDs, one per line" required></textarea>
+        
         <label for="quantity">Quantity:</label>
         <input type="number" id="quantity" placeholder="Quantity" required>
-        <label for="orderDate">Date:</label>
-        <input type="date" id="orderDate" placeholder="Date" required>
-        <label for="orderStatus">Order Status:</label>
-        <select id="orderStatus" required>
-            <option value="ordered">Ordered</option>
-            <option value="dispatched">Dispatched</option>
-            <option value="on road">On Road</option>
-            <option value="delivered">Delivered</option>
-        </select>
-        <label for="itemList">Item List:</label>
-        <input type="text" id="itemList" placeholder="Item List" required>
-        <label for="totalPrice">Total Price:</label>
-        <input type="number" id="totalPrice" placeholder="Total Price" required>
+        
+        <label for="totalprice">Total Price:</label>
+        <input type="number" id="totalprice" placeholder="Total Price" required>
+        
         <button type="submit">Add/Update Order</button>
     </form>
     <br>
@@ -72,11 +81,13 @@
         <thead>
             <tr>
                 <th>Order ID</th>
-                <th>User Email</th>
+                <th>ETA</th>
+                <th>Location</th>
+                <th>Created At</th>
+                <th>Farmer ID</th>
+                <th>Payment</th>
+                <th>Product IDs</th>
                 <th>Quantity</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Item List</th>
                 <th>Total Price</th>
                 <th>Actions</th>
             </tr>
@@ -86,47 +97,44 @@
         </tbody>
     </table>
 
-    <h2>Delivery Management</h2>
-    <form id="deliveryForm">
-        <label for="bookingIds">Booking IDs (comma separated):</label>
-        <input type="text" id="bookingIds" placeholder="Booking IDs (comma separated)" required>
-        <label for="orderingIds">Ordering IDs (comma separated):</label>
-        <input type="text" id="orderingIds" placeholder="Ordering IDs (comma separated)" required>
-        <label for="inventoryIds">Inventory IDs (comma separated):</label>
-        <input type="text" id="inventoryIds" placeholder="Inventory IDs (comma separated)" required>
-        <label for="county">County:</label>
-        <input type="text" id="county" placeholder="County" required>
-        <label for="address">Address:</label>
-        <input type="text" id="address" placeholder="Address" required>
-        <label for="driverId">Driver Employee ID:</label>
-        <input type="text" id="driverId" placeholder="Driver Employee ID" required>
-        <label for="dispatchManagerId">Dispatch Manager Employee ID:</label>
-        <input type="text" id="dispatchManagerId" placeholder="Dispatch Manager Employee ID" readonly>
-        <label for="vehiclePlate">Vehicle Plate:</label>
-        <input type="text" id="vehiclePlate" placeholder="Vehicle Plate" required>
-        <label for="deliveryStatus">Delivery Status:</label>
-        <select id="deliveryStatus" required>
-            <option value="ordered">Ordered</option>
-            <option value="dispatched">Dispatched</option>
-            <option value="on road">On Road</option>
-            <option value="delivered">Delivered</option>
+    <h2>Dispatch Management</h2>
+    <form id="dispatchForm">
+        <label for="dispatchId">Dispatch ID:</label>
+        <input type="text" id="dispatchId" placeholder="Dispatch ID" readonly>
+        <label for="disTim">Dispatch Time:</label>
+        <input type="datetime-local" id="disTim" placeholder="Dispatch Time" required>
+        <label for="dispatched">Dispatched:</label>
+        <select id="dispatched" required>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
         </select>
-        <button type="submit">Add/Update Delivery</button>
+        <label for="driver_id">Driver ID:</label>
+        <input type="text" id="driver_id" placeholder="Driver ID" required>
+        <label for="location">Location:</label>
+        <input type="text" id="location" placeholder="Location" required>
+        <label for="manger_id">Manager ID:</label>
+        <input type="text" id="manger_id" placeholder="Manager ID" readonly>
+        <label for="vehicle">Vehicle:</label>
+        <input type="text" id="vehicle" placeholder="Vehicle" required>
+        <label for="booking_id">Booking IDs (comma separated):</label>
+        <input type="text" id="booking_id" placeholder="Booking IDs (comma separated)" required>
+        <label for="order_id">Order IDs (comma separated):</label>
+        <input type="text" id="order_id" placeholder="Order IDs (comma separated)" required>
+        <button type="submit">Add/Update Dispatch</button>
     </form>
     <br>
-    <table id="deliveryTable">
+    <table id="dispatchTable">
         <thead>
             <tr>
-                <th>Delivery ID</th>
-                <th>Booking IDs</th>
-                <th>Ordering IDs</th>
-                <th>Inventory IDs</th>
-                <th>County</th>
-                <th>Address</th>
+                <th>Dispatch ID</th>
+                <th>Dispatch Time</th>
+                <th>Dispatched</th>
                 <th>Driver ID</th>
-                <th>Dispatch Manager ID</th>
-                <th>Vehicle Plate</th>
-                <th>Delivery Status</th>
+                <th>Location</th>
+                <th>Manager ID</th>
+                <th>Vehicle</th>
+                <th>Booking IDs</th>
+                <th>Order IDs</th>
                 <th>Actions</th>
             </tr>
         </thead>

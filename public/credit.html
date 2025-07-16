@@ -14,37 +14,41 @@
 <body>
     <a href="Landing.html" class="back-icon" title="Back to Landing Page">
         <i class="fas fa-arrow-left"></i></a>
-    <h2>Credit Management</h2>
+    <h2>Credit Request Management</h2>
     <form id="creditForm">
-    <label for="managerID">Finance Manager</label>
-    <input type="text" id="managerID" placeholder="Finance Manager" readonly>
-    <input type="number" id="amount" placeholder="Credit Amount" required>
-    <input type="number" id="interest" placeholder="Interest (%)" required>
-    <input type="date" id="dateIssued" placeholder="Date Issued" required>
-    <input type="email" id="userEmail" placeholder="User Email" required>
-    <label for="status">Status</label>
-    <select id="status" required>
-        <option value="Paid">Paid</option>
-        <option value="Paying">Paying</option>
-        <option value="Issued">Issued</option>
-    </select>
-    <button type="submit">Add/Update Credit</button>
-</form>
+        <label for="creditId">Credit ID:</label>
+        <input type="text" id="creditId" placeholder="Credit ID" readonly>
+        <label for="amount">Amount:</label>
+        <input type="number" id="amount" placeholder="Amount" required>
+        <label for="approvedBy">Approved By:</label>
+        <input type="text" id="approvedBy" placeholder="Manager ID" readonly>
+        <label for="cleared">Cleared:</label>
+        <select id="cleared" required>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </select>
+        <label for="description">Description of Credit:</label>
+        <textarea id="description" placeholder="Description of Credit" required></textarea>
+        <label for="farmerId">Farmer ID:</label>
+        <input type="text" id="farmerId" placeholder="Farmer ID" required>
+        <label for="orderId">Order ID:</label>
+        <input type="text" id="orderId" placeholder="Order ID" required>
+        <button type="submit">Add/Update Credit Request</button>
+    </form>
     <br>
     <table id="creditTable">
         <thead>
-    <tr>
-        <th>Credit ID</th>
-        <th>Credit Amount</th>
-        <th>Interest (%)</th>
-        <th>Repayment Value</th>
-        <th>Date Issued</th>
-        <th>User Email</th>
-        <th>Status</th>
-        <th>Finance Manager</th>
-        <th>Actions</th>
-    </tr>
-</thead>
+            <tr>
+                <th>Credit ID</th>
+                <th>Amount</th>
+                <th>Approved By</th>
+                <th>Cleared</th>
+                <th>Description</th>
+                <th>Farmer ID</th>
+                <th>Order ID</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
         <tbody>
             <!-- Data will be populated here -->
         </tbody>

@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -24,10 +24,29 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
             console.log("User is logged in:", user);
-            document.getElementById('dispatchManagerId').value = user.uid;
+            document.getElementById('manger_id').value = user.uid;
             fetchBookingData();
             fetchOrderingData();
-            fetchDeliveryData();
+            fetchDispatchData();
+            
+            // Event listener for dispatch form submission
+            document.getElementById('dispatchForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const dispatchId = this.dataset.dispatchId || null;
+                const disTim = document.getElementById('disTim').value;
+                const dispatched = document.getElementById('dispatched').value;
+                const driverId = document.getElementById('driver_id').value;
+                const location = document.getElementById('location').value;
+                const mangerId = document.getElementById('manger_id').value;
+                const vehicle = document.getElementById('vehicle').value;
+                const bookingIds = document.getElementById('booking_id').value;
+                const orderIds = document.getElementById('order_id').value;
+                
+                addOrUpdateDispatch(dispatchId, disTim, dispatched, driverId, location, mangerId, vehicle, bookingIds, orderIds);
+                this.reset();
+                delete this.dataset.dispatchId;
+                document.getElementById('manger_id').value = user.uid; // Reset the manager ID
+            });
         } else {
             console.log("No user is logged in");
             window.location.href = "login.html";
@@ -46,13 +65,13 @@ async function fetchBookingData() {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${doc.id}</td>
-                <td>${booking.certificationId}</td>
-                <td>${booking.trainerName}</td>
-                <td>${booking.employeeId}</td>
-                <td>${booking.issueDate && booking.issueDate.seconds ? new Date(booking.issueDate.seconds * 1000).toLocaleDateString() : ''}</td>
-                <td>${booking.userEmail}</td>
+                <td>${booking.certification_id || ''}</td>
+                <td>${booking.farmer_id || ''}</td>
+                <td>${booking.trainer_id || ''}</td>
+                <td>${booking.Expected_Start_Time && booking.Expected_Start_Time.seconds ? new Date(booking.Expected_Start_Time.seconds * 1000).toLocaleString() : ''}</td>
+                <td>${booking.booked ? 'Yes' : 'No'}</td>
                 <td>
-                    <button onclick="editBooking('${doc.id}', '${booking.certificationId}', '${booking.trainerName}', '${booking.employeeId}', '${booking.issueDate && booking.issueDate.seconds ? new Date(booking.issueDate.seconds * 1000).toISOString().split('T')[0] : ''}', '${booking.userEmail}')">Edit</button>
+                    <button onclick="editBooking('${doc.id}', '${booking.certification_id || ''}', '${booking.farmer_id || ''}', '${booking.trainer_id || ''}', '${booking.Expected_Start_Time && booking.Expected_Start_Time.seconds ? new Date(booking.Expected_Start_Time.seconds * 1000).toISOString().slice(0, 16) : ''}', ${booking.booked})">Edit</button>
                     <button onclick="deleteBooking('${doc.id}')">Delete</button>
                 </td>
             `;
@@ -67,22 +86,44 @@ async function fetchBookingData() {
 // Fetch and display ordering data
 async function fetchOrderingData() {
     try {
-        const querySnapshot = await getDocs(collection(db, "orders"));
+        const querySnapshot = await getDocs(collection(db, "order"));
         const orderingTableBody = document.getElementById('orderingTable').getElementsByTagName('tbody')[0];
         orderingTableBody.innerHTML = '';
         querySnapshot.forEach((doc) => {
             const order = doc.data();
             const row = document.createElement('tr');
+            
+            // Format timestamps if they exist
+            let etaDisplay = '';
+            if (order.ETA && order.ETA.toDate) {
+                etaDisplay = order.ETA.toDate().toLocaleString();
+            }
+            
+            let createdAtDisplay = '';
+            if (order.created_at && order.created_at.toDate) {
+                createdAtDisplay = order.created_at.toDate().toLocaleString();
+            }
+            
+            // Format product_id array for display
+            let productIdsDisplay = '';
+            if (order.product_id && Array.isArray(order.product_id)) {
+                productIdsDisplay = order.product_id.map((item, index) => 
+                    `${index}: ${item}`
+                ).join(', ');
+            }
+            
             row.innerHTML = `
                 <td>${doc.id}</td>
-                <td>${order.orderUserEmail}</td>
-                <td>${order.quantity}</td>
-                <td>${order.orderDate}</td>
-                <td>${order.orderStatus}</td>
-                <td>${order.itemList}</td>
-                <td>${order.totalPrice}</td>
+                <td>${etaDisplay}</td>
+                <td>${order.Location || ''}</td>
+                <td>${createdAtDisplay}</td>
+                <td>${order.farmer_id || ''}</td>
+                <td>${order.payment || ''}</td>
+                <td>${productIdsDisplay}</td>
+                <td>${order.quantity || ''}</td>
+                <td>${order.totalprice || ''}</td>
                 <td>
-                    <button onclick="editOrder('${doc.id}', '${order.orderUserEmail}', ${order.quantity}, '${order.orderDate}', '${order.orderStatus}', '${order.itemList}', ${order.totalPrice})">Edit</button>
+                    <button onclick="editOrder('${doc.id}')">Edit</button>
                     <button onclick="deleteOrder('${doc.id}')">Delete</button>
                 </td>
             `;
@@ -94,43 +135,65 @@ async function fetchOrderingData() {
     }
 }
 
-// Fetch and display delivery data
-async function fetchDeliveryData() {
+// Fetch and display dispatch data
+async function fetchDispatchData() {
     try {
-        const querySnapshot = await getDocs(collection(db, "deliveries"));
-        const deliveryTableBody = document.getElementById('deliveryTable').getElementsByTagName('tbody')[0];
-        deliveryTableBody.innerHTML = '';
+        const querySnapshot = await getDocs(collection(db, "dispatches"));
+        const dispatchTableBody = document.getElementById('dispatchTable').getElementsByTagName('tbody')[0];
+        dispatchTableBody.innerHTML = '';
         querySnapshot.forEach((doc) => {
-            const delivery = doc.data();
+            const dispatch = doc.data();
             const row = document.createElement('tr');
+            
+            // Format booking_id and order_id arrays for display
+            let bookingIds = Array.isArray(dispatch.booking_id) ? dispatch.booking_id.join(', ') : dispatch.booking_id || '';
+            let orderIds = Array.isArray(dispatch.order_id) ? dispatch.order_id.join(', ') : dispatch.order_id || '';
+            
+            // Format dispatch time
+            let dispatchTime = '';
+            if (dispatch.DisTim) {
+                if (dispatch.DisTim.seconds) {
+                    dispatchTime = new Date(dispatch.DisTim.seconds * 1000).toLocaleString();
+                } else if (dispatch.DisTim instanceof Date) {
+                    dispatchTime = dispatch.DisTim.toLocaleString();
+                } else {
+                    dispatchTime = String(dispatch.DisTim);
+                }
+            }
+            
             row.innerHTML = `
                 <td>${doc.id}</td>
-                <td>${delivery.bookingIds}</td>
-                <td>${delivery.orderingIds}</td>
-                <td>${delivery.inventoryIds}</td>
-                <td>${delivery.county}</td>
-                <td>${delivery.address}</td>
-                <td>${delivery.driverId}</td>
-                <td>${delivery.dispatchManagerId}</td>
-                <td>${delivery.vehiclePlate}</td>
-                <td>${delivery.deliveryStatus}</td>
+                <td>${dispatchTime}</td>
+                <td>${dispatch.Dispatched ? 'Yes' : 'No'}</td>
+                <td>${dispatch.Driver_id || ''}</td>
+                <td>${dispatch.Location || ''}</td>
+                <td>${dispatch.Manger_id || ''}</td>
+                <td>${dispatch.Vehicle || ''}</td>
+                <td>${bookingIds}</td>
+                <td>${orderIds}</td>
                 <td>
-                    <button onclick="editDelivery('${doc.id}', '${delivery.bookingIds}', '${delivery.orderingIds}', '${delivery.inventoryIds}', '${delivery.county}', '${delivery.address}', '${delivery.driverId}', '${delivery.dispatchManagerId}', '${delivery.vehiclePlate}', '${delivery.deliveryStatus}')">Edit</button>
-                    <button onclick="deleteDelivery('${doc.id}')">Delete</button>
+                    <button onclick="editDispatch('${doc.id}', '${dispatchTime ? new Date(dispatch.DisTim.seconds * 1000).toISOString().slice(0, 16) : ''}', ${dispatch.Dispatched}, '${dispatch.Driver_id || ''}', '${dispatch.Location || ''}', '${dispatch.Manger_id || ''}', '${dispatch.Vehicle || ''}', '${bookingIds}', '${orderIds}')">Edit</button>
+                    <button onclick="deleteDispatch('${doc.id}')">Delete</button>
                 </td>
             `;
-            deliveryTableBody.appendChild(row);
+            dispatchTableBody.appendChild(row);
         });
     } catch (error) {
-        console.error("Error fetching deliveries: ", error.code, error.message);
-        alert(`An error occurred while fetching deliveries: ${error.message}`);
+        console.error("Error fetching dispatches: ", error.code, error.message);
+        alert(`An error occurred while fetching dispatches: ${error.message}`);
     }
 }
 
 // Add or update booking entry
-async function addOrUpdateBooking(bookingId, certificationId, trainerName, employeeId, issueDate, userEmail) {
+async function addOrUpdateBooking(bookingId, certificationId, farmerId, trainerId, expectedStartTime, booked) {
     try {
-        const bookingData = { certificationId, trainerName, employeeId, issueDate: new Date(issueDate), userEmail };
+        const bookingData = { 
+            certification_id: certificationId, 
+            farmer_id: farmerId, 
+            trainer_id: trainerId, 
+            Expected_Start_Time: new Date(expectedStartTime), 
+            booked: booked === 'true' || booked === true
+        };
         let docRef;
         if (bookingId) {
             const bookingRef = doc(db, "bookings", bookingId);
@@ -149,18 +212,49 @@ async function addOrUpdateBooking(bookingId, certificationId, trainerName, emplo
 }
 
 // Add or update order entry
-async function addOrUpdateOrder(orderId, orderUserEmail, quantity, orderDate, orderStatus, itemList, totalPrice) {
+async function addOrUpdateOrder(orderId) {
     try {
-        const orderData = { orderUserEmail, quantity, orderDate: new Date(orderDate), orderStatus, itemList, totalPrice };
+        // Get form values
+        const eta = document.getElementById('eta').value;
+        const location = document.getElementById('orderLocation').value;
+        const farmerId = document.getElementById('orderFarmerId').value;
+        const payment = document.getElementById('payment').value;
+        const productIdsText = document.getElementById('productIds').value;
+        const quantity = parseInt(document.getElementById('quantity').value);
+        const totalPrice = parseFloat(document.getElementById('totalprice').value);
+        
+        // Process product IDs from textarea
+        const productIds = productIdsText.split(',')
+            .map(id => id.trim())
+            .filter(id => id.length > 0);
+            
+        // Create order object
+        const orderData = {
+            ETA: new Date(eta),
+            Location: location,
+            farmer_id: farmerId,
+            payment: payment,
+            product_id: productIds,
+            quantity: quantity,
+            totalprice: totalPrice
+        };
+        
+        // If it's a new order, add created_at timestamp using serverTimestamp
+        if (!orderId) {
+            orderData.created_at = serverTimestamp();
+        }
+        
         let docRef;
         if (orderId) {
-            const orderRef = doc(db, "orders", orderId);
+            const orderRef = doc(db, "order", orderId);
             await updateDoc(orderRef, orderData);
             docRef = orderRef;
-            await logDatabaseActivity('update', 'orders', orderId, orderData);
+            await logDatabaseActivity('update', 'order', orderId, orderData);
+            alert("Order updated successfully!");
         } else {
-            docRef = await addDoc(collection(db, "orders"), orderData);
-            await logDatabaseActivity('create', 'orders', docRef.id, orderData);
+            docRef = await addDoc(collection(db, "order"), orderData);
+            await logDatabaseActivity('create', 'order', docRef.id, orderData);
+            alert("Order created successfully!");
         }
         fetchOrderingData();
     } catch (error) {
@@ -169,24 +263,38 @@ async function addOrUpdateOrder(orderId, orderUserEmail, quantity, orderDate, or
     }
 }
 
-// Add or update delivery entry
-async function addOrUpdateDelivery(deliveryId, bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus) {
+// Add or update dispatch entry
+async function addOrUpdateDispatch(dispatchId, disTim, dispatched, driverId, location, mangerId, vehicle, bookingIds, orderIds) {
     try {
-        const deliveryData = { bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus };
+        // Convert comma-separated strings to arrays
+        const bookingIdArray = bookingIds.split(',').map(id => id.trim()).filter(id => id);
+        const orderIdArray = orderIds.split(',').map(id => id.trim()).filter(id => id);
+        
+        const dispatchData = {
+            DisTim: new Date(disTim),
+            Dispatched: dispatched === 'true' || dispatched === true,
+            Driver_id: driverId,
+            Location: location,
+            Manger_id: mangerId,
+            Vehicle: vehicle,
+            booking_id: bookingIdArray,
+            order_id: orderIdArray
+        };
+        
         let docRef;
-        if (deliveryId) {
-            const deliveryRef = doc(db, "deliveries", deliveryId);
-            await updateDoc(deliveryRef, deliveryData);
-            docRef = deliveryRef;
-            await logDatabaseActivity('update', 'deliveries', deliveryId, deliveryData);
+        if (dispatchId) {
+            const dispatchRef = doc(db, "dispatches", dispatchId);
+            await updateDoc(dispatchRef, dispatchData);
+            docRef = dispatchRef;
+            await logDatabaseActivity('update', 'dispatches', dispatchId, dispatchData);
         } else {
-            docRef = await addDoc(collection(db, "deliveries"), deliveryData);
-            await logDatabaseActivity('create', 'deliveries', docRef.id, deliveryData);
+            docRef = await addDoc(collection(db, "dispatches"), dispatchData);
+            await logDatabaseActivity('create', 'dispatches', docRef.id, dispatchData);
         }
-        fetchDeliveryData();
+        fetchDispatchData();
     } catch (error) {
-        console.error("Error adding/updating delivery: ", error.code, error.message);
-        alert(`An error occurred while saving the delivery: ${error.message}`);
+        console.error("Error adding/updating dispatch: ", error.code, error.message);
+        alert(`An error occurred while saving the dispatch: ${error.message}`);
     }
 }
 
@@ -205,63 +313,104 @@ async function deleteBooking(bookingId) {
 
 // Delete order entry
 async function deleteOrder(orderId) {
-    try {
-        const orderRef = doc(db, "orders", orderId);
-        await deleteDoc(orderRef);
-        await logDatabaseActivity('delete', 'orders', orderId, {});
-        fetchOrderingData();
-    } catch (error) {
-        console.error("Error deleting order: ", error.code, error.message);
-        alert(`An error occurred while deleting the order: ${error.message}`);
+    if (confirm('Are you sure you want to delete this order?')) {
+        try {
+            const orderRef = doc(db, "order", orderId);
+            await deleteDoc(orderRef);
+            await logDatabaseActivity('delete', 'order', orderId, {});
+            alert("Order deleted successfully!");
+            fetchOrderingData();
+        } catch (error) {
+            console.error("Error deleting order: ", error.code, error.message);
+            alert(`An error occurred while deleting the order: ${error.message}`);
+        }
     }
 }
 
-// Delete delivery entry
-async function deleteDelivery(deliveryId) {
+// Delete dispatch entry
+async function deleteDispatch(dispatchId) {
     try {
-        const deliveryRef = doc(db, "deliveries", deliveryId);
-        await deleteDoc(deliveryRef);
-        await logDatabaseActivity('delete', 'deliveries', deliveryId, {});
-        fetchDeliveryData();
+        const dispatchRef = doc(db, "dispatches", dispatchId);
+        await deleteDoc(dispatchRef);
+        await logDatabaseActivity('delete', 'dispatches', dispatchId, {});
+        fetchDispatchData();
     } catch (error) {
-        console.error("Error deleting delivery: ", error.code, error.message);
-        alert(`An error occurred while deleting the delivery: ${error.message}`);
+        console.error("Error deleting dispatch: ", error.code, error.message);
+        alert(`An error occurred while deleting the dispatch: ${error.message}`);
     }
 }
 
 // Edit booking entry
-function editBooking(bookingId, certificationId, trainerName, employeeId, issueDate, userEmail) {
+function editBooking(bookingId, certificationId, farmerId, trainerId, expectedStartTime, booked) {
     document.getElementById('certificationId').value = certificationId;
-    document.getElementById('trainerName').value = trainerName;
-    document.getElementById('employeeId').value = employeeId;
-    document.getElementById('issueDate').value = issueDate;
-    document.getElementById('userEmail').value = userEmail;
+    document.getElementById('farmerId').value = farmerId;
+    document.getElementById('trainerId').value = trainerId;
+    document.getElementById('expectedStartTime').value = expectedStartTime;
+    document.getElementById('booked').value = booked ? 'true' : 'false';
     document.getElementById('bookingForm').dataset.bookingId = bookingId;
 }
 
 // Edit order entry
-function editOrder(orderId, orderUserEmail, quantity, orderDate, orderStatus, itemList, totalPrice) {
-    document.getElementById('orderUserEmail').value = orderUserEmail;
-    document.getElementById('quantity').value = quantity;
-    document.getElementById('orderDate').value = orderDate;
-    document.getElementById('orderStatus').value = orderStatus;
-    document.getElementById('itemList').value = itemList;
-    document.getElementById('totalPrice').value = totalPrice;
-    document.getElementById('orderingForm').dataset.orderId = orderId;
+async function editOrder(orderId) {
+    try {
+        // Fetch the order data
+        const orderRef = doc(db, "order", orderId);
+        const orderSnapshot = await getDoc(orderRef);
+        
+        if (orderSnapshot.exists()) {
+            const orderData = orderSnapshot.data();
+            
+            // Format ETA for datetime-local input
+            let etaValue = '';
+            if (orderData.ETA && orderData.ETA.toDate) {
+                const etaDate = orderData.ETA.toDate();
+                etaValue = etaDate.toISOString().slice(0, 16);
+            }
+            
+            // Set form values
+            document.getElementById('orderId').value = orderId;
+            document.getElementById('eta').value = etaValue;
+            document.getElementById('orderLocation').value = orderData.Location || '';
+            document.getElementById('orderFarmerId').value = orderData.farmer_id || '';
+            document.getElementById('payment').value = orderData.payment || '';
+            
+            // Format product_id array for textarea
+            if (orderData.product_id && Array.isArray(orderData.product_id)) {
+                document.getElementById('productIds').value = orderData.product_id.join(', ');
+            } else {
+                document.getElementById('productIds').value = '';
+            }
+            
+            document.getElementById('quantity').value = orderData.quantity || '';
+            document.getElementById('totalprice').value = orderData.totalprice || '';
+            
+            // Set form dataset for submission handler
+            document.getElementById('orderingForm').dataset.orderId = orderId;
+            
+            // Scroll to form
+            document.getElementById('orderingForm').scrollIntoView();
+        } else {
+            console.error("Order not found");
+            alert("Order not found");
+        }
+    } catch (error) {
+        console.error("Error loading order for edit: ", error.code, error.message);
+        alert(`An error occurred while loading the order: ${error.message}`);
+    }
 }
 
-// Edit delivery entry
-function editDelivery(deliveryId, bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus) {
-    document.getElementById('bookingIds').value = bookingIds;
-    document.getElementById('orderingIds').value = orderingIds;
-    document.getElementById('inventoryIds').value = inventoryIds;
-    document.getElementById('county').value = county;
-    document.getElementById('address').value = address;
-    document.getElementById('driverId').value = driverId;
-    document.getElementById('dispatchManagerId').value = dispatchManagerId;
-    document.getElementById('vehiclePlate').value = vehiclePlate;
-    document.getElementById('deliveryStatus').value = deliveryStatus;
-    document.getElementById('deliveryForm').dataset.deliveryId = deliveryId;
+// Edit dispatch entry
+function editDispatch(dispatchId, disTim, dispatched, driverId, location, mangerId, vehicle, bookingIds, orderIds) {
+    document.getElementById('dispatchId').value = dispatchId;
+    document.getElementById('disTim').value = disTim;
+    document.getElementById('dispatched').value = dispatched ? 'true' : 'false';
+    document.getElementById('driver_id').value = driverId;
+    document.getElementById('location').value = location;
+    document.getElementById('manger_id').value = mangerId;
+    document.getElementById('vehicle').value = vehicle;
+    document.getElementById('booking_id').value = bookingIds;
+    document.getElementById('order_id').value = orderIds;
+    document.getElementById('dispatchForm').dataset.dispatchId = dispatchId;
 }
 
 // Log database activity
@@ -286,16 +435,25 @@ async function logDatabaseActivity(action, collection, documentId, data) {
     }
 }
 
+// Make functions available globally for onclick handlers
+window.editDispatch = editDispatch;
+window.deleteDispatch = deleteDispatch;
+window.editOrder = editOrder;
+window.deleteOrder = deleteOrder;
+window.editBooking = editBooking;
+window.deleteBooking = deleteBooking;
+
 // Event listener for booking form submission
 document.getElementById('bookingForm').addEventListener('submit', function(event) {
     event.preventDefault();
     const bookingId = event.target.dataset.bookingId || null;
     const certificationId = document.getElementById('certificationId').value;
-    const trainerName = document.getElementById('trainerName').value;
-    const employeeId = document.getElementById('employeeId').value;
-    const issueDate = document.getElementById('issueDate').value;
-    const userEmail = document.getElementById('userEmail').value;
-    addOrUpdateBooking(bookingId, certificationId, trainerName, employeeId, issueDate, userEmail);
+    const farmerId = document.getElementById('farmerId').value;
+    const trainerId = document.getElementById('trainerId').value;
+    const expectedStartTime = document.getElementById('expectedStartTime').value;
+    const isBooked = document.getElementById('booked').value;
+    
+    addOrUpdateBooking(bookingId, certificationId, farmerId, trainerId, expectedStartTime, isBooked);
     event.target.reset();
     delete event.target.dataset.bookingId;
 });
@@ -304,31 +462,11 @@ document.getElementById('bookingForm').addEventListener('submit', function(event
 document.getElementById('orderingForm').addEventListener('submit', function(event) {
     event.preventDefault();
     const orderId = event.target.dataset.orderId || null;
-    const orderUserEmail = document.getElementById('orderUserEmail').value;
-    const quantity = document.getElementById('quantity').value;
-    const orderDate = document.getElementById('orderDate').value;
-    const orderStatus = document.getElementById('orderStatus').value;
-    const itemList = document.getElementById('itemList').value;
-    const totalPrice = document.getElementById('totalPrice').value;
-    addOrUpdateOrder(orderId, orderUserEmail, quantity, orderDate, orderStatus, itemList, totalPrice);
+    
+    // Call addOrUpdateOrder with just the orderId - it will fetch values from form
+    addOrUpdateOrder(orderId);
+    
+    // Reset the form and remove the orderId from dataset
     event.target.reset();
     delete event.target.dataset.orderId;
-});
-
-// Event listener for delivery form submission
-document.getElementById('deliveryForm').addEventListener('submit', function(event) {
-    event.preventDefault();
-    const deliveryId = event.target.dataset.deliveryId || null;
-    const bookingIds = document.getElementById('bookingIds').value;
-    const orderingIds = document.getElementById('orderingIds').value;
-    const inventoryIds = document.getElementById('inventoryIds').value;
-    const county = document.getElementById('county').value;
-    const address = document.getElementById('address').value;
-    const driverId = document.getElementById('driverId').value;
-    const dispatchManagerId = document.getElementById('dispatchManagerId').value;
-    const vehiclePlate = document.getElementById('vehiclePlate').value;
-    const deliveryStatus = document.getElementById('deliveryStatus').value;
-    addOrUpdateDelivery(deliveryId, bookingIds, orderingIds, inventoryIds, county, address, driverId, dispatchManagerId, vehiclePlate, deliveryStatus);
-    event.target.reset();
-    delete event.target.dataset.deliveryId;
 });

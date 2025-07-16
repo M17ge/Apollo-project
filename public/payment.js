@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
             console.log("User is logged in:", user);
-            document.getElementById('managerID').value = user.uid;
+            document.getElementById('approval_manager').value = user.uid;
             fetchPayments();
         } else {
             console.log("No user is logged in");
@@ -34,17 +34,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('paymentForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        // Get form values
         const paymentID = document.getElementById('paymentID').value;
-        const managerID = document.getElementById('managerID').value;
-        const paymentMethod = document.getElementById('paymentMethod').value;
-        const creditID = document.getElementById('creditID').value;
-        const from = document.getElementById('from').value;
-        const to = document.getElementById('to').value;
-        const invoiceID = document.getElementById('invoiceID').value;
-        const date = document.getElementById('date').value;
-        await addOrUpdatePayment(paymentID, managerID, paymentMethod, creditID, from, to, invoiceID, date);
+        const approval_manager = document.getElementById('approval_manager').value;
+        const status = document.getElementById('status').value === 'true';
+        const inventory_id = document.getElementById('inventory_id').value || null;
+        const order_id = document.getElementById('order_id').value || null;
+        const total_amount = parseFloat(document.getElementById('total_amount').value);
+        
+        // Call the addOrUpdatePayment function
+        await addOrUpdatePayment(paymentID, approval_manager, status, inventory_id, order_id, total_amount);
+        
+        // Reset form and state
         e.target.reset();
-        delete e.target.dataset.paymentID;
+        document.getElementById('submitPayment').textContent = 'Add Payment';
+        
+        // If we're logged in, reset the approval_manager field to the current user's ID
+        if (auth.currentUser) {
+            document.getElementById('approval_manager').value = auth.currentUser.uid;
+        }
     });
 });
 
@@ -52,45 +61,47 @@ document.addEventListener('DOMContentLoaded', () => {
 async function fetchPayments() {
     try {
         const querySnapshot = await getDocs(collection(db, "payments"));
-        const deliveredTableBody = document.getElementById('deliveredTable').getElementsByTagName('tbody')[0];
-        const sentTableBody = document.getElementById('sentTable').getElementsByTagName('tbody')[0];
-        deliveredTableBody.innerHTML = '';
-        sentTableBody.innerHTML = '';
+        const approvedTableBody = document.getElementById('approvedTable').getElementsByTagName('tbody')[0];
+        const pendingTableBody = document.getElementById('pendingTable').getElementsByTagName('tbody')[0];
+        
+        // Clear existing data
+        approvedTableBody.innerHTML = '';
+        pendingTableBody.innerHTML = '';
 
         querySnapshot.forEach((docSnap) => {
             const payment = docSnap.data();
             const row = document.createElement('tr');
-            if (payment.paymentMethod === 'credit') {
-                row.innerHTML = `
-                    <td>${docSnap.id}</td>
-                    <td>${payment.managerID}</td>
-                    <td>${payment.paymentMethod}</td>
-                    <td>${payment.creditID}</td>
-                    <td>${payment.from}</td>
-                    <td>${payment.to}</td>
-                    <td>${payment.invoiceID}</td>
-                    <td>${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toLocaleDateString() : ''}</td>
-                    <td>
-                        <button onclick="editPayment('${docSnap.id}', '${payment.managerID}', '${payment.paymentMethod}', '${payment.creditID}', '${payment.from}', '${payment.to}', '${payment.invoiceID}', '${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toISOString().split('T')[0] : ''}')">Edit</button>
-                        <button onclick="deletePayment('${docSnap.id}')">Delete</button>
-                    </td>
-                `;
-                deliveredTableBody.appendChild(row);
+            
+            // Format approval_time timestamp if it exists
+            let approvalTimeDisplay = '';
+            if (payment.approval_time && payment.approval_time.toDate) {
+                approvalTimeDisplay = payment.approval_time.toDate().toLocaleString();
+            }
+            
+            // Format total_amount with proper currency display
+            const totalAmountDisplay = typeof payment.total_amount === 'number' ? 
+                payment.total_amount.toLocaleString() : payment.total_amount || '';
+            
+            // Create row HTML
+            row.innerHTML = `
+                <td>${docSnap.id}</td>
+                <td>${payment.Approval_manager || ''}</td>
+                <td>${payment.Status ? 'Approved' : 'Pending'}</td>
+                <td>${approvalTimeDisplay}</td>
+                <td>${payment.inventory_id || ''}</td>
+                <td>${payment.order_id || ''}</td>
+                <td>${totalAmountDisplay}</td>
+                <td>
+                    <button onclick="editPayment('${docSnap.id}')">Edit</button>
+                    <button onclick="deletePayment('${docSnap.id}')">Delete</button>
+                </td>
+            `;
+            
+            // Add to appropriate table based on status
+            if (payment.Status === true) {
+                approvedTableBody.appendChild(row);
             } else {
-                row.innerHTML = `
-                    <td>${docSnap.id}</td>
-                    <td>${payment.managerID}</td>
-                    <td>${payment.paymentMethod}</td>
-                    <td>${payment.from}</td>
-                    <td>${payment.to}</td>
-                    <td>${payment.invoiceID}</td>
-                    <td>${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toLocaleDateString() : ''}</td>
-                    <td>
-                        <button onclick="editPayment('${docSnap.id}', '${payment.managerID}', '${payment.paymentMethod}', '${payment.creditID}', '${payment.from}', '${payment.to}', '${payment.invoiceID}', '${payment.date && payment.date.seconds ? new Date(payment.date.seconds * 1000).toISOString().split('T')[0] : ''}')">Edit</button>
-                        <button onclick="deletePayment('${docSnap.id}')">Delete</button>
-                    </td>
-                `;
-                sentTableBody.appendChild(row);
+                pendingTableBody.appendChild(row);
             }
         });
     } catch (error) {
@@ -101,17 +112,40 @@ async function fetchPayments() {
 }
 
 // Add or update payment entry
-async function addOrUpdatePayment(paymentID, managerID, paymentMethod, creditID, from, to, invoiceID, date) {
+async function addOrUpdatePayment(paymentID, approval_manager, status, inventory_id, order_id, total_amount) {
     try {
+        // Create the payment data object
+        const paymentData = {
+            Approval_manager: approval_manager,
+            Status: status,
+            total_amount: total_amount
+        };
+        
+        // Add optional fields only if they have values
+        if (inventory_id) {
+            paymentData.inventory_id = inventory_id;
+        }
+        
+        if (order_id) {
+            paymentData.order_id = order_id;
+        }
+        
         let docRef;
         if (paymentID) {
+            // Update existing payment
             const paymentRef = doc(db, "payments", paymentID);
-            await updateDoc(paymentRef, { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
+            await updateDoc(paymentRef, paymentData);
             docRef = paymentRef;
-            await logDatabaseActivity('update', 'payments', paymentID, { managerID, paymentMethod, creditID, from, to, invoiceID, date });
+            await logDatabaseActivity('update', 'payments', paymentID, paymentData);
+            alert("Payment updated successfully!");
         } else {
-            docRef = await addDoc(collection(db, "payments"), { managerID, paymentMethod, creditID, from, to, invoiceID, date: new Date(date) });
-            await logDatabaseActivity('create', 'payments', docRef.id, { managerID, paymentMethod, creditID, from, to, invoiceID, date });
+            // Add approval_time for new payments
+            paymentData.approval_time = serverTimestamp();
+            
+            // Create new payment
+            docRef = await addDoc(collection(db, "payments"), paymentData);
+            await logDatabaseActivity('create', 'payments', docRef.id, paymentData);
+            alert("Payment added successfully!");
         }
         fetchPayments();
     } catch (error) {
@@ -123,29 +157,52 @@ async function addOrUpdatePayment(paymentID, managerID, paymentMethod, creditID,
 
 // Delete payment entry
 async function deletePayment(paymentID) {
-    try {
-        const paymentRef = doc(db, "payments", paymentID);
-        await deleteDoc(paymentRef);
-        await logDatabaseActivity('delete', 'payments', paymentID, {});
-        fetchPayments();
-    } catch (error) {
-        const msg = error && error.message ? error.message : String(error);
-        console.error("Error deleting payment: ", error.code || '', msg);
-        alert(`An error occurred while deleting the payment: ${msg}`);
+    if (confirm('Are you sure you want to delete this payment?')) {
+        try {
+            const paymentRef = doc(db, "payments", paymentID);
+            await deleteDoc(paymentRef);
+            await logDatabaseActivity('delete', 'payments', paymentID, {});
+            alert("Payment deleted successfully!");
+            fetchPayments();
+        } catch (error) {
+            const msg = error && error.message ? error.message : String(error);
+            console.error("Error deleting payment: ", error.code || '', msg);
+            alert(`An error occurred while deleting the payment: ${msg}`);
+        }
     }
 }
 
 // Edit payment entry
-function editPayment(paymentID, managerID, paymentMethod, creditID, from, to, invoiceID, date) {
-    document.getElementById('paymentID').value = paymentID;
-    document.getElementById('managerID').value = managerID;
-    document.getElementById('paymentMethod').value = paymentMethod;
-    document.getElementById('creditID').value = creditID;
-    document.getElementById('from').value = from;
-    document.getElementById('to').value = to;
-    document.getElementById('invoiceID').value = invoiceID;
-    document.getElementById('date').value = date;
-    document.getElementById('paymentForm').dataset.paymentID = paymentID;
+async function editPayment(paymentID) {
+    try {
+        const paymentRef = doc(db, "payments", paymentID);
+        const paymentSnap = await getDoc(paymentRef);
+        
+        if (paymentSnap.exists()) {
+            const paymentData = paymentSnap.data();
+            
+            // Populate form with payment data
+            document.getElementById('paymentID').value = paymentID;
+            document.getElementById('approval_manager').value = paymentData.Approval_manager || '';
+            document.getElementById('status').value = paymentData.Status ? 'true' : 'false';
+            document.getElementById('inventory_id').value = paymentData.inventory_id || '';
+            document.getElementById('order_id').value = paymentData.order_id || '';
+            document.getElementById('total_amount').value = paymentData.total_amount || '';
+            
+            // Change button text to indicate update
+            document.getElementById('submitPayment').textContent = 'Update Payment';
+            
+            // Scroll to form
+            document.getElementById('paymentForm').scrollIntoView({ behavior: 'smooth' });
+        } else {
+            console.error("Payment not found");
+            alert("Payment not found");
+        }
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error getting payment: ", error.code || '', msg);
+        alert(`An error occurred while getting payment data: ${msg}`);
+    }
 }
 
 // Log database activity
@@ -169,3 +226,7 @@ async function logDatabaseActivity(action, collection, documentId, data) {
         alert(`An error occurred while logging activity: ${msg}`);
     }
 }
+
+// Make functions available globally for onclick handlers
+window.editPayment = editPayment;
+window.deletePayment = deletePayment;
