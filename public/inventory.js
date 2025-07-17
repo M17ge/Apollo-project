@@ -23,7 +23,18 @@ const db = getFirestore(app);
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            document.getElementById('managerID').value = user.uid;
+            // Store user ID for use in forms
+            const currentUserId = user.uid;
+            
+            // Check if managerID field exists before setting value
+            const managerIDField = document.getElementById('managerID');
+            if (managerIDField) {
+                managerIDField.value = currentUserId;
+            }
+            
+            // Make user ID available globally for form submissions
+            window.currentUserId = currentUserId;
+            
             initializeForms();
         } else {
             window.location.href = "login.html";
@@ -80,7 +91,8 @@ function initializeForms() {
                 Time_of_Arrival: serverTimestamp(),
                 Total_Price: totalPrice,
                 products: products,
-                supplier_id: supplier_id
+                supplier_id: supplier_id,
+                manager_id: document.getElementById('managerID')?.value || window.currentUserId || auth.currentUser?.uid || 'unknown'
             };
             
             let docRef;

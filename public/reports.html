@@ -13,6 +13,9 @@
     <a href="Landing.html" class="back-icon" title="Back to Landing Page">
         <i class="fas fa-arrow-left"></i></a>
     <h2>Generate Reports</h2>
+    <div class="user-info">
+        <p>Account created: <span id="userCreatedAt">Loading...</span></p>
+    </div>
     <form id="reportForm">
     <label for="adminId">Admin ID:</label>
     <input type="text" id="adminId" readonly>
@@ -54,6 +57,8 @@
                 <th>Document ID</th>
                 <th>Collection</th>
                 <th>Data</th>
+                <th>Authorized By</th>
+                <th>Edited By</th>
             </tr>
         </thead>
         <tbody>

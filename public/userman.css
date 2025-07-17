@@ -126,3 +126,111 @@ form button:hover {
     margin-bottom: 5px;
     border-radius: 4px;
 }
+
+.error-message {
+    background-color: #ffebee;
+    color: #b71c1c;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border-left: 5px solid #f44336;
+    font-family: monospace;
+    white-space: pre-wrap;
+}
+
+.error-message strong {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 1.1em;
+}
+
+.permission-results {
+    background-color: #e8f5e9;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 5px;
+    border: 1px solid #c8e6c9;
+}
+
+.permission-results h3 {
+    margin-top: 0;
+    color: #2e7d32;
+}
+
+.permission-success {
+    color: #2e7d32;
+    margin: 5px 0;
+    padding: 5px;
+    font-family: monospace;
+}
+
+.permission-error {
+    color: #b71c1c;
+    margin: 5px 0;
+    padding: 5px;
+    font-family: monospace;
+}
+
+.permission-advice {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #fff8e1;
+    border-left: 5px solid #ffca28;
+}
+
+#testPermissionsBtn {
+    background-color: #0277bd;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 10px 0;
+    font-weight: bold;
+}
+
+#testPermissionsBtn:hover {
+    background-color: #01579b;
+}
+
+.collection-result {
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: #f5f9ff;
+    border-radius: 5px;
+    border: 1px solid #d0e0f0;
+}
+
+.collection-result h4 {
+    margin-top: 0;
+    color: #0277bd;
+    border-bottom: 1px solid #d0e0f0;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+.permission-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+}
+
+.permission-table th,
+.permission-table td {
+    padding: 8px;
+    border: 1px solid #d0e0f0;
+    text-align: left;
+}
+
+.permission-table th {
+    background-color: #e8f5ff;
+    color: #0277bd;
+}
+
+.permission-table tr:nth-child(even) {
+    background-color: #f8fbff;
+}
+
+.permission-table tr:hover {
+    background-color: #ecf5fc;
+}

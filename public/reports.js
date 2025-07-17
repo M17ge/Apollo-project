@@ -42,20 +42,28 @@ document.addEventListener('DOMContentLoaded', () => {
 // Fetch and display user metadata (creation time, etc.)
 async function fetchUserMetadata(userId) {
     try {
+        // Get the element and check if it exists first
+        const userCreatedAtElement = document.getElementById('userCreatedAt');
+        if (!userCreatedAtElement) {
+            console.warn("Element with ID 'userCreatedAt' not found in the DOM");
+            return; // Exit early if element doesn't exist
+        }
+        
         // Use lowercase 'users' if that's your collection name
         const userDoc = await getDoc(doc(db, "users", userId));
         if (userDoc.exists()) {
             const userData = userDoc.data();
-            document.getElementById('userCreatedAt').textContent = userData.createdAt
+            userCreatedAtElement.textContent = userData.createdAt
                 ? new Date(userData.createdAt.seconds * 1000).toLocaleString()
                 : "N/A";
         } else {
-            document.getElementById('userCreatedAt').textContent = "N/A";
+            userCreatedAtElement.textContent = "N/A";
         }
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);
         console.error("Error fetching user metadata: ", error.code || '', msg);
-        alert(`An error occurred while fetching user metadata: ${msg}`);
+        // Don't alert as this is not critical for the user experience
+        console.warn("Failed to fetch user metadata, but continuing with application");
     }
 }
 

@@ -269,22 +269,45 @@ async function fetchUsers() {
         const userTableBody = document.getElementById('userTable').getElementsByTagName('tbody')[0];
         userTableBody.innerHTML = ''; // Clear existing data
         
-        // Fetch farmers
-        const farmersSnapshot = await getDocs(collection(db, "farmers"));
-        farmersSnapshot.forEach((doc) => {
-            const user = doc.data();
-            addUserToTable(userTableBody, doc.id, user, 'farmers');
-        });
+        try {
+            // Fetch farmers
+            console.log("Attempting to fetch farmers collection...");
+            const farmersSnapshot = await getDocs(collection(db, "farmers"));
+            console.log("Farmers collection access successful, got", farmersSnapshot.size, "documents");
+            
+            farmersSnapshot.forEach((doc) => {
+                const user = doc.data();
+                addUserToTable(userTableBody, doc.id, user, 'farmers');
+            });
+        } catch (farmersError) {
+            console.error("Error fetching farmers:", farmersError.code, farmersError.message);
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `<strong>Farmers Collection Error:</strong> ${farmersError.code || ''} - ${farmersError.message}`;
+            document.getElementById('main').insertBefore(errorDiv, document.getElementById('userTable'));
+        }
         
-        // Fetch other users
-        const usersSnapshot = await getDocs(collection(db, "users"));
-        usersSnapshot.forEach((doc) => {
-            const user = doc.data();
-            addUserToTable(userTableBody, doc.id, user, 'users');
-        });
+        try {
+            // Fetch other users
+            console.log("Attempting to fetch users collection...");
+            const usersSnapshot = await getDocs(collection(db, "users"));
+            console.log("Users collection access successful, got", usersSnapshot.size, "documents");
+            
+            usersSnapshot.forEach((doc) => {
+                const user = doc.data();
+                addUserToTable(userTableBody, doc.id, user, 'users');
+            });
+        } catch (usersError) {
+            console.error("Error fetching users:", usersError.code, usersError.message);
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `<strong>Users Collection Error:</strong> ${usersError.code || ''} - ${usersError.message}`;
+            document.getElementById('main').insertBefore(errorDiv, document.getElementById('userTable'));
+        }
+        
     } catch (error) {
-        console.error("Error fetching users: ", error);
-        alert("An error occurred while fetching users. Please try again.");
+        console.error("Error in fetchUsers function:", error.code, error.message);
+        alert(`An error occurred while fetching users: ${error.code || ''} - ${error.message}`);
     }
 }
 
@@ -360,4 +383,289 @@ async function logDatabaseActivity(action, collection, documentId, data) {
         console.error("Error logging activity: ", error.code || '', msg);
         alert(`An error occurred while logging activity: ${msg}`);
     }
+}
+
+// Test Firestore permissions for a specific collection
+async function testFirestorePermissions(collectionName) {
+    try {
+        // Test READ permissions
+        console.log(`Testing read permissions for ${collectionName} collection...`);
+        let readSuccess = false;
+        let readError = null;
+        let docCount = 0;
+        
+        try {
+            const testSnapshot = await getDocs(collection(db, collectionName));
+            docCount = testSnapshot.size;
+            readSuccess = true;
+            console.log(`✅ Read permission GRANTED for ${collectionName} collection. Found ${testSnapshot.size} documents.`);
+        } catch (error) {
+            readSuccess = false;
+            readError = error;
+            console.error(`❌ Read permission DENIED for ${collectionName} collection:`, error.code, error.message);
+        }
+        
+        // Test WRITE permissions
+        console.log(`Testing write permissions for ${collectionName} collection...`);
+        let writeSuccess = false;
+        let writeError = null;
+        let docRef = null;
+        const testDocId = `test_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        
+        try {
+            docRef = await addDoc(collection(db, collectionName), {
+                test: true,
+                testId: testDocId,
+                description: "This is a test document for permission testing",
+                timestamp: new Date()
+            });
+            writeSuccess = true;
+            console.log(`✅ Write permission GRANTED for ${collectionName} collection. Added test document.`);
+        } catch (error) {
+            writeSuccess = false;
+            writeError = error;
+            console.error(`❌ Write permission DENIED for ${collectionName} collection:`, error.code, error.message);
+        }
+        
+        // Test UPDATE permissions (only if write succeeded)
+        let updateSuccess = false;
+        let updateError = null;
+        
+        if (writeSuccess && docRef) {
+            console.log(`Testing update permissions for ${collectionName} collection...`);
+            try {
+                await updateDoc(docRef, {
+                    updated: true,
+                    updateTime: new Date()
+                });
+                updateSuccess = true;
+                console.log(`✅ Update permission GRANTED for ${collectionName} collection.`);
+            } catch (error) {
+                updateSuccess = false;
+                updateError = error;
+                console.error(`❌ Update permission DENIED for ${collectionName} collection:`, error.code, error.message);
+            }
+        }
+        
+        // Test DELETE permissions (only if write succeeded)
+        let deleteSuccess = false;
+        let deleteError = null;
+        
+        if (writeSuccess && docRef) {
+            console.log(`Testing delete permissions for ${collectionName} collection...`);
+            try {
+                await deleteDoc(docRef);
+                deleteSuccess = true;
+                console.log(`✅ Delete permission GRANTED for ${collectionName} collection.`);
+            } catch (error) {
+                deleteSuccess = false;
+                deleteError = error;
+                console.error(`❌ Delete permission DENIED for ${collectionName} collection:`, error.code, error.message);
+            }
+        }
+        
+        return {
+            collection: collectionName,
+            read: {
+                success: readSuccess,
+                message: readSuccess ? `Found ${docCount} documents` : `${readError?.code || 'Error'}: ${readError?.message}`,
+                error: readError
+            },
+            write: {
+                success: writeSuccess,
+                message: writeSuccess ? `Added test document successfully` : `${writeError?.code || 'Error'}: ${writeError?.message}`,
+                error: writeError
+            },
+            update: {
+                success: updateSuccess,
+                tested: writeSuccess, // Only tested if write succeeded
+                message: !writeSuccess ? 'Not tested (write failed)' : 
+                         updateSuccess ? 'Updated test document successfully' : `${updateError?.code || 'Error'}: ${updateError?.message}`,
+                error: updateError
+            },
+            delete: {
+                success: deleteSuccess,
+                tested: writeSuccess, // Only tested if write succeeded
+                message: !writeSuccess ? 'Not tested (write failed)' : 
+                         deleteSuccess ? 'Deleted test document successfully' : `${deleteError?.code || 'Error'}: ${deleteError?.message}`,
+                error: deleteError
+            },
+            testDocRef: !writeSuccess || deleteSuccess ? null : docRef,
+            hasUncleanedTestDoc: writeSuccess && !deleteSuccess
+        };
+    } catch (error) {
+        console.error(`Error testing permissions for ${collectionName}:`, error);
+        return {
+            collection: collectionName,
+            error: error,
+            message: `General error testing collection: ${error.message}`
+        };
+    }
+}
+
+// Function to test all relevant collections
+async function testAllCollections() {
+    const collections = ['users', 'farmers', 'inventory', 'products', 'order', 'payments', 'reports'];
+    const results = {};
+    const resultsDiv = document.createElement('div');
+    resultsDiv.id = 'permissionResults';
+    resultsDiv.className = 'permission-results';
+    
+    const heading = document.createElement('h3');
+    heading.textContent = 'Firestore Permissions Test Results';
+    resultsDiv.appendChild(heading);
+    
+    // Add a loading message
+    resultsDiv.innerHTML += '<p>Testing permissions for collections... Please wait.</p>';
+    
+    // Insert at top of page
+    document.getElementById('main').insertBefore(resultsDiv, document.getElementById('main').firstChild);
+    
+    let anyHasUncleanedTestDoc = false;
+    
+    for (const collectionName of collections) {
+        const result = await testFirestorePermissions(collectionName);
+        results[collectionName] = result;
+        
+        // Track if any test docs remain
+        if (result.hasUncleanedTestDoc) {
+            anyHasUncleanedTestDoc = true;
+        }
+        
+        // Create result item
+        const resultItem = document.createElement('div');
+        resultItem.className = 'collection-result';
+        
+        // Create table for this collection
+        let tableHTML = `
+            <h4>${collectionName}</h4>
+            <table class="permission-table">
+                <thead>
+                    <tr>
+                        <th>Operation</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        // Add READ results
+        tableHTML += `
+            <tr>
+                <td><strong>READ</strong></td>
+                <td>${result.read?.success ? '✅ GRANTED' : '❌ DENIED'}</td>
+                <td>${result.read?.message || 'Not tested'}</td>
+            </tr>
+        `;
+        
+        // Add WRITE results
+        tableHTML += `
+            <tr>
+                <td><strong>WRITE</strong></td>
+                <td>${result.write?.success ? '✅ GRANTED' : '❌ DENIED'}</td>
+                <td>${result.write?.message || 'Not tested'}</td>
+            </tr>
+        `;
+        
+        // Add UPDATE results
+        tableHTML += `
+            <tr>
+                <td><strong>UPDATE</strong></td>
+                <td>${!result.update?.tested ? '⚠️ NOT TESTED' : 
+                       result.update?.success ? '✅ GRANTED' : '❌ DENIED'}</td>
+                <td>${result.update?.message || 'Not tested'}</td>
+            </tr>
+        `;
+        
+        // Add DELETE results
+        tableHTML += `
+            <tr>
+                <td><strong>DELETE</strong></td>
+                <td>${!result.delete?.tested ? '⚠️ NOT TESTED' : 
+                       result.delete?.success ? '✅ GRANTED' : '❌ DENIED'}</td>
+                <td>${result.delete?.message || 'Not tested'}</td>
+            </tr>
+        `;
+        
+        tableHTML += `
+                </tbody>
+            </table>
+        `;
+        
+        // Add note if test document remains
+        if (result.hasUncleanedTestDoc) {
+            tableHTML += `
+                <div class="permission-advice" style="margin-top: 5px;">
+                    <strong>Note:</strong> A test document remains in this collection because delete permission was denied.
+                </div>
+            `;
+        }
+        
+        resultItem.innerHTML = tableHTML;
+        
+        // Add to results div
+        const loadingMsg = resultsDiv.querySelector('p');
+        if (loadingMsg) resultsDiv.removeChild(loadingMsg);
+        resultsDiv.appendChild(resultItem);
+    }
+    
+    // Add advice based on results
+    const readResults = Object.values(results).map(r => r.read?.success);
+    const writeResults = Object.values(results).map(r => r.write?.success);
+    const updateResults = Object.values(results).map(r => r.update?.success);
+    const deleteResults = Object.values(results).map(r => r.delete?.success);
+    
+    const allReadsFailed = readResults.every(r => r === false);
+    const allWritesFailed = writeResults.every(r => r === false);
+    const someReadsFailed = readResults.some(r => r === false);
+    const someWritesFailed = writeResults.some(r => r === false);
+    
+    const adviceDiv = document.createElement('div');
+    adviceDiv.className = 'permission-advice';
+    
+    let adviceHTML = '<strong>Security Rules Analysis:</strong><br>';
+    
+    if (allReadsFailed && allWritesFailed) {
+        adviceHTML += `• All operations failed: This likely indicates an authentication issue or overly restrictive Firestore rules.<br>
+                      • Check that your rules include <code>allow read, write: if request.auth != null;</code> for collections that should be accessible.<br>`;
+    } else if (allReadsFailed) {
+        adviceHTML += `• All read operations failed but some writes succeeded: Your rules may be missing read permissions.<br>
+                      • Check for missing <code>allow read</code> statements in your security rules.<br>`;
+    } else if (allWritesFailed) {
+        adviceHTML += `• All write operations failed but reads succeeded: Your rules may be set to read-only mode.<br>
+                      • Add write permissions with <code>allow write: if request.auth != null;</code> to enable writes.<br>`;
+    } else if (someReadsFailed || someWritesFailed) {
+        adviceHTML += `• Some operations failed: Your rules appear to be selective about which collections are accessible.<br>
+                      • This may be intentional if different collections need different access levels.<br>`;
+    } else {
+        adviceHTML += `• All basic operations succeeded: Your Firestore permissions are working correctly for these collections.<br>`;
+    }
+    
+    if (anyHasUncleanedTestDoc) {
+        adviceHTML += `<br><strong>Warning:</strong> Some test documents could not be deleted. These will remain in your database and may need manual cleanup.<br>`;
+    }
+    
+    adviceHTML += `<br><strong>Recommended Security Rules:</strong><br>
+                 <code>
+                 rules_version = '2';<br>
+                 service cloud.firestore {<br>
+                   match /databases/{database}/documents {<br>
+                     // Allow authenticated users to read and write to all collections<br>
+                     match /{document=**} {<br>
+                       allow read, write: if request.auth != null;<br>
+                     }<br>
+                     <br>
+                     // Optional: Add more specific rules for certain collections<br>
+                     match /users/{userId} {<br>
+                       // Users can only read/write their own documents<br>
+                       allow read, write: if request.auth != null && request.auth.uid == userId;<br>
+                     }<br>
+                   }<br>
+                 }</code>`;
+    
+    adviceDiv.innerHTML = adviceHTML;
+    resultsDiv.appendChild(adviceDiv);
+    
+    return results;
 }

@@ -49,6 +49,25 @@ button:hover {
     transition: color 0.3s ease;
 }
 
+.user-info {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 10px 20px;
+    margin: 10px 0 20px 0;
+    max-width: 400px;
+}
+
+.user-info p {
+    margin: 5px 0;
+    color: #004d40;
+}
+
+.user-info span {
+    font-weight: bold;
+    color: #00796b;
+}
+
 .back-icon:hover {
     color: #004d40;
 }
