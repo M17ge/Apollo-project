@@ -31,13 +31,13 @@ try {
 /**
  * Core logging function - logs any event to the reports collection
  * @param {string} action - Action performed (create, update, delete, login, etc)
- * @param {string} collection - The collection being affected
+ * @param {string} collectionName - The collection being affected
  * @param {string} documentId - The ID of the document being affected
  * @param {Object} data - The data involved in the operation
  * @param {Object} oldData - Previous data (for updates)
  * @returns {Promise<string>} - Returns the ID of the created log entry
  */
-export async function logActivity(action, collection, documentId, data, oldData = null) {
+export async function logActivity(action, collectionName, documentId, data, oldData = null) {
     try {
         const timestamp = new Date();
         const currentUser = auth.currentUser;
@@ -45,7 +45,7 @@ export async function logActivity(action, collection, documentId, data, oldData 
         const logData = {
             action,
             timestamp,
-            collection,
+            collection: collectionName,
             documentId: documentId || 'N/A',
             userId: currentUser?.uid || 'unknown',
             userEmail: currentUser?.email || 'unknown',
@@ -68,22 +68,22 @@ export async function logActivity(action, collection, documentId, data, oldData 
 /**
  * Log document creation
  */
-export async function logCreate(collection, documentId, data) {
-    return logActivity('create', collection, documentId, data);
+export async function logCreate(collectionName, documentId, data) {
+    return logActivity('create', collectionName, documentId, data);
 }
 
 /**
  * Log document update
  */
-export async function logUpdate(collection, documentId, newData, oldData) {
-    return logActivity('update', collection, documentId, newData, oldData);
+export async function logUpdate(collectionName, documentId, newData, oldData) {
+    return logActivity('update', collectionName, documentId, newData, oldData);
 }
 
 /**
  * Log document deletion
  */
-export async function logDelete(collection, documentId, deletedData) {
-    return logActivity('delete', collection, documentId, null, deletedData);
+export async function logDelete(collectionName, documentId, deletedData) {
+    return logActivity('delete', collectionName, documentId, null, deletedData);
 }
 
 /**
