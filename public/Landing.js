@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { logAuth, logError, logActivity } from './logging.js';
 
 // Firebase configuration for apollo-mobile-7013d
 const firebaseConfig = {
@@ -17,10 +18,17 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 // Check if user is authenticated
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         console.log("User is logged in:", user);
         // User is logged in, show landing page
+        
+        // Log page access with user information
+        await logActivity('page_access', 'navigation', null, { 
+            page: 'landing',
+            userId: user.uid,
+            email: user.email
+        });
     } else {
         // No user, redirect to login
         window.location.href = 'index.html';
@@ -54,11 +62,29 @@ function toggleProfileDropdown() {
 window.toggleProfileDropdown = toggleProfileDropdown;
 // Function to sign out
 function signOutUser() {
-    signOut(auth).then(() => {
+    // Capture user information before sign out
+    const user = auth.currentUser;
+    const userData = user ? {
+        userId: user.uid,
+        email: user.email,
+        displayName: user.displayName || null
+    } : { userId: 'unknown' };
+    
+    signOut(auth).then(async () => {
         console.log('User signed out.');
+        
+        // Log the sign out event
+        await logAuth('auth_logout', userData);
+        
         window.location.href = 'index.html';
-    }).catch((error) => {
+    }).catch(async (error) => {
         console.error('Error signing out:', error);
+        
+        // Log sign out error
+        await logError('auth', 'Failed to sign out', {
+            ...userData,
+            errorMessage: error.message
+        });
     });
 }
 // Attach signOutUser function to the window object to make it accessible globally

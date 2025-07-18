@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/fireba
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -21,6 +22,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Log page access
+    logActivity('page_access', 'navigation', null, { page: 'delivery' });
+    
     onAuthStateChanged(auth, (user) => {
         if (user) {
             console.log("User is logged in:", user);
@@ -196,18 +200,35 @@ async function addOrUpdateBooking(bookingId, certificationId, farmerId, trainerI
         };
         let docRef;
         if (bookingId) {
+            // Get old data for logging
             const bookingRef = doc(db, "bookings", bookingId);
+            const oldDataSnap = await getDoc(bookingRef);
+            const oldData = oldDataSnap.exists() ? oldDataSnap.data() : null;
+            
+            // Update document
             await updateDoc(bookingRef, bookingData);
             docRef = bookingRef;
-            await logDatabaseActivity('update', 'bookings', bookingId, bookingData);
+            
+            // Log the update
+            await logUpdate('bookings', bookingId, bookingData, oldData);
         } else {
+            // Create new document
             docRef = await addDoc(collection(db, "bookings"), bookingData);
-            await logDatabaseActivity('create', 'bookings', docRef.id, bookingData);
+            
+            // Log the creation
+            await logCreate('bookings', docRef.id, bookingData);
         }
         fetchBookingData();
     } catch (error) {
-        console.error("Error adding/updating booking: ", error.code, error.message);
-        alert(`An error occurred while saving the booking: ${error.message}`);
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error adding/updating booking: ", error.code || '', msg);
+        
+        // Log the error
+        await logError('bookings', "Failed to save booking", {
+            error: msg
+        });
+        
+        alert(`An error occurred while saving the booking: ${msg}`);
     }
 }
 
@@ -246,20 +267,37 @@ async function addOrUpdateOrder(orderId) {
         
         let docRef;
         if (orderId) {
+            // Get old data for logging
             const orderRef = doc(db, "order", orderId);
+            const oldDataSnap = await getDoc(orderRef);
+            const oldData = oldDataSnap.exists() ? oldDataSnap.data() : null;
+            
+            // Update the document
             await updateDoc(orderRef, orderData);
             docRef = orderRef;
-            await logDatabaseActivity('update', 'order', orderId, orderData);
+            
+            // Log the update
+            await logUpdate('order', orderId, orderData, oldData);
             alert("Order updated successfully!");
         } else {
+            // Create new document
             docRef = await addDoc(collection(db, "order"), orderData);
-            await logDatabaseActivity('create', 'order', docRef.id, orderData);
+            
+            // Log the creation
+            await logCreate('order', docRef.id, orderData);
             alert("Order created successfully!");
         }
         fetchOrderingData();
     } catch (error) {
-        console.error("Error adding/updating order: ", error.code, error.message);
-        alert(`An error occurred while saving the order: ${error.message}`);
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error adding/updating order: ", error.code || '', msg);
+        
+        // Log the error
+        await logError('order', "Failed to save order", {
+            error: msg
+        });
+        
+        alert(`An error occurred while saving the order: ${msg}`);
     }
 }
 
@@ -283,31 +321,64 @@ async function addOrUpdateDispatch(dispatchId, disTim, dispatched, driverId, loc
         
         let docRef;
         if (dispatchId) {
+            // Get old data for logging
             const dispatchRef = doc(db, "dispatches", dispatchId);
+            const oldDataSnap = await getDoc(dispatchRef);
+            const oldData = oldDataSnap.exists() ? oldDataSnap.data() : null;
+            
+            // Update the document
             await updateDoc(dispatchRef, dispatchData);
             docRef = dispatchRef;
-            await logDatabaseActivity('update', 'dispatches', dispatchId, dispatchData);
+            
+            // Log the update
+            await logUpdate('dispatches', dispatchId, dispatchData, oldData);
         } else {
+            // Create new document
             docRef = await addDoc(collection(db, "dispatches"), dispatchData);
-            await logDatabaseActivity('create', 'dispatches', docRef.id, dispatchData);
+            
+            // Log the creation
+            await logCreate('dispatches', docRef.id, dispatchData);
         }
         fetchDispatchData();
     } catch (error) {
-        console.error("Error adding/updating dispatch: ", error.code, error.message);
-        alert(`An error occurred while saving the dispatch: ${error.message}`);
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error adding/updating dispatch: ", error.code || '', msg);
+        
+        // Log the error
+        await logError('dispatches', "Failed to save dispatch", {
+            error: msg
+        });
+        
+        alert(`An error occurred while saving the dispatch: ${msg}`);
     }
 }
 
 // Delete booking entry
 async function deleteBooking(bookingId) {
     try {
+        // Get data before deletion for logging
         const bookingRef = doc(db, "bookings", bookingId);
+        const bookingSnap = await getDoc(bookingRef);
+        const deletedData = bookingSnap.exists() ? bookingSnap.data() : null;
+        
+        // Delete the document
         await deleteDoc(bookingRef);
-        await logDatabaseActivity('delete', 'bookings', bookingId, {});
+        
+        // Log the deletion
+        await logDelete('bookings', bookingId, deletedData);
+        
         fetchBookingData();
     } catch (error) {
-        console.error("Error deleting booking: ", error.code, error.message);
-        alert(`An error occurred while deleting the booking: ${error.message}`);
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error deleting booking: ", error.code || '', msg);
+        
+        // Log the error
+        await logError('bookings', "Failed to delete booking", {
+            bookingId,
+            error: msg
+        });
+        
+        alert(`An error occurred while deleting the booking: ${msg}`);
     }
 }
 
@@ -315,14 +386,30 @@ async function deleteBooking(bookingId) {
 async function deleteOrder(orderId) {
     if (confirm('Are you sure you want to delete this order?')) {
         try {
+            // Get data before deletion for logging
             const orderRef = doc(db, "order", orderId);
+            const orderSnap = await getDoc(orderRef);
+            const deletedData = orderSnap.exists() ? orderSnap.data() : null;
+            
+            // Delete the document
             await deleteDoc(orderRef);
-            await logDatabaseActivity('delete', 'order', orderId, {});
+            
+            // Log the deletion
+            await logDelete('order', orderId, deletedData);
+            
             alert("Order deleted successfully!");
             fetchOrderingData();
         } catch (error) {
-            console.error("Error deleting order: ", error.code, error.message);
-            alert(`An error occurred while deleting the order: ${error.message}`);
+            const msg = error && error.message ? error.message : String(error);
+            console.error("Error deleting order: ", error.code || '', msg);
+            
+            // Log the error
+            await logError('order', "Failed to delete order", {
+                orderId,
+                error: msg
+            });
+            
+            alert(`An error occurred while deleting the order: ${msg}`);
         }
     }
 }
@@ -330,13 +417,29 @@ async function deleteOrder(orderId) {
 // Delete dispatch entry
 async function deleteDispatch(dispatchId) {
     try {
+        // Get data before deletion for logging
         const dispatchRef = doc(db, "dispatches", dispatchId);
+        const dispatchSnap = await getDoc(dispatchRef);
+        const deletedData = dispatchSnap.exists() ? dispatchSnap.data() : null;
+        
+        // Delete the document
         await deleteDoc(dispatchRef);
-        await logDatabaseActivity('delete', 'dispatches', dispatchId, {});
+        
+        // Log the deletion
+        await logDelete('dispatches', dispatchId, deletedData);
+        
         fetchDispatchData();
     } catch (error) {
-        console.error("Error deleting dispatch: ", error.code, error.message);
-        alert(`An error occurred while deleting the dispatch: ${error.message}`);
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error deleting dispatch: ", error.code || '', msg);
+        
+        // Log the error
+        await logError('dispatches', "Failed to delete dispatch", {
+            dispatchId,
+            error: msg
+        });
+        
+        alert(`An error occurred while deleting the dispatch: ${msg}`);
     }
 }
 
@@ -413,27 +516,7 @@ function editDispatch(dispatchId, disTim, dispatched, driverId, location, manger
     document.getElementById('dispatchForm').dataset.dispatchId = dispatchId;
 }
 
-// Log database activity
-async function logDatabaseActivity(action, collection, documentId, data) {
-    try {
-        const timestamp = new Date();
-        const logData = {
-            userId: auth.currentUser?.uid || 'unknown',
-            action: action,
-            timestamp: timestamp,
-            documentId: documentId,
-            collection: collection,
-            data: data,
-            authorizedBy: auth.currentUser?.uid || 'unknown',
-            editedBy: auth.currentUser?.email || 'unknown'
-        };
-        await addDoc(collection(db, "Reports"), logData);
-    } catch (error) {
-        const msg = error && error.message ? error.message : String(error);
-        console.error("Error logging activity: ", error.code || '', msg);
-        alert(`An error occurred while logging activity: ${msg}`);
-    }
-}
+// This function is deprecated - using the new logging.js module instead
 
 // Make functions available globally for onclick handlers
 window.editDispatch = editDispatch;

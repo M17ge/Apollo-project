@@ -140,6 +140,99 @@ form input[readonly] {
     background-color: #e0f2f1;
 }
 
+/* Button container */
+.button-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+/* Action buttons styling */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    color: white;
+    font-size: 14px;
+}
+
+/* Print styles */
+@media print {
+    body {
+        background-color: white;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .back-icon, #reportForm, .button-container {
+        display: none !important;
+    }
+    
+    h2 {
+        text-align: center;
+        margin-top: 10px;
+    }
+    
+    .print-header {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 2px solid #00796b;
+        margin-bottom: 20px;
+    }
+    
+    .print-logo {
+        font-size: 24px;
+        font-weight: bold;
+        color: #00796b;
+    }
+    
+    .print-date {
+        font-style: italic;
+        color: #555;
+    }
+    
+    #reportTable {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    #reportTable th {
+        background-color: #e0f2f1 !important;
+        color: #00796b !important;
+    }
+    
+    #reportTable th, #reportTable td {
+        border: 1px solid #b2dfdb !important;
+    }
+}
+
+.action-btn i {
+    margin-right: 6px;
+}
+
+.print-btn {
+    background-color: #0288d1;
+}
+
+.print-btn:hover {
+    background-color: #01579b;
+}
+
+.download-btn {
+    background-color: #388e3c;
+}
+
+.download-btn:hover {
+    background-color: #1b5e20;
+}
+
 /* Generate Report Button */
 form button[type="submit"] {
     background-color: #00796b;

@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/fireba
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -21,6 +22,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Log page access
+    logActivity('page_access', 'navigation', null, { page: 'learning' });
+    
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             try {
@@ -28,6 +32,12 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 const msg = error && error.message ? error.message : String(error);
                 console.error("Error initializing: ", error.code || '', msg);
+                
+                // Log the error
+                await logError('learning', "Failed to initialize page", {
+                    error: msg
+                });
+                
                 alert(`An error occurred while initializing the page: ${msg}`);
             }
         } else {
@@ -74,18 +84,35 @@ async function addOrUpdateCertification(certificationId, name, duration, price) 
         };
         let docRef;
         if (certificationId) {
+            // Get old data for logging
             const certificationRef = doc(db, "certifications", certificationId);
+            const oldDataSnap = await getDoc(certificationRef);
+            const oldData = oldDataSnap.exists() ? oldDataSnap.data() : null;
+            
+            // Update the document
             await updateDoc(certificationRef, certData);
             docRef = certificationRef;
-            await logDatabaseActivity('update', 'certifications', certificationId, certData);
+            
+            // Log the update
+            await logUpdate('certifications', certificationId, certData, oldData);
         } else {
+            // Create new document
             docRef = await addDoc(collection(db, "certifications"), certData);
-            await logDatabaseActivity('create', 'certifications', docRef.id, certData);
+            
+            // Log the creation
+            await logCreate('certifications', docRef.id, certData);
         }
         fetchCertificationData();
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);
         console.error("Error adding/updating certification: ", error.code || '', msg);
+        
+        // Log the error
+        await logError('certifications', "Failed to save certification", {
+            name,
+            error: msg
+        });
+        
         alert(`An error occurred while saving the certification: ${msg}`);
     }
 }
@@ -93,13 +120,28 @@ async function addOrUpdateCertification(certificationId, name, duration, price) 
 // Delete certification entry
 async function deleteCertification(certificationId) {
     try {
+        // Get data before deletion for logging
         const certificationRef = doc(db, "certifications", certificationId);
+        const certSnap = await getDoc(certificationRef);
+        const deletedData = certSnap.exists() ? certSnap.data() : null;
+        
+        // Delete the document
         await deleteDoc(certificationRef);
-        await logDatabaseActivity('delete', 'certifications', certificationId, {});
+        
+        // Log the deletion
+        await logDelete('certifications', certificationId, deletedData);
+        
         fetchCertificationData();
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);
         console.error("Error deleting certification: ", error.code || '', msg);
+        
+        // Log the error
+        await logError('certifications', "Failed to delete certification", {
+            certificationId,
+            error: msg
+        });
+        
         alert(`An error occurred while deleting the certification: ${msg}`);
     }
 }
@@ -116,27 +158,7 @@ window.editCertification = function(certificationId, name, duration, price) {
 // Delete certification entry (make sure it's globally accessible)
 window.deleteCertification = deleteCertification;
 
-// Log database activity
-async function logDatabaseActivity(action, collection, documentId, data) {
-    try {
-        const timestamp = new Date();
-        const logData = {
-            userId: auth.currentUser?.uid || 'unknown',
-            action: action,
-            timestamp: timestamp,
-            documentId: documentId,
-            collection: collection,
-            data: data,
-            authorizedBy: auth.currentUser?.uid || 'unknown',
-            editedBy: auth.currentUser?.email || 'unknown'
-        };
-        await addDoc(collection(db, "Reports"), logData);
-    } catch (error) {
-        const msg = error && error.message ? error.message : String(error);
-        console.error("Error logging activity: ", error.code || '', msg);
-        alert(`An error occurred while logging activity: ${msg}`);
-    }
-}
+// This function is deprecated - using the new logging.js module instead
 
 // Event listener for form submission
 document.getElementById('certificationForm').addEventListener('submit', function(event) {

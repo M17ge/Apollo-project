@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/fireba
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import { getFirestore, collection, setDoc, getDocs, updateDoc, deleteDoc, doc, addDoc, query, where, getDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { logCreate, logUpdate, logDelete, logActivity, logError, logAuth } from './logging.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyA2asaFAVw0PSlJFbyuPbOd3Zao-yqSS4g",
@@ -20,6 +21,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Log page access
+    logActivity('page_access', 'navigation', null, { page: 'userman' });
+    
     // Check authentication state
     onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -140,7 +144,18 @@ async function addUser(email, password, additionalData) {
         // Store the user information in the appropriate collection in Firestore
         try {
             await setDoc(doc(db, collectionName, user.uid), userData);
-            await logDatabaseActivity('create', collectionName, user.uid, userData);
+            
+            // Log the user creation in Firestore
+            await logCreate(collectionName, user.uid, userData);
+            
+            // Also log the auth event
+            await logAuth('user_created', {
+                userId: user.uid,
+                email: email,
+                displayName: additionalData.displayName,
+                role: additionalData.userRole
+            });
+            
             console.log(`User information stored in the '${collectionName}' collection.`);
             
             // Refresh user list to show the new user with correct formatting
@@ -151,12 +166,30 @@ async function addUser(email, password, additionalData) {
             
             alert(`User ${additionalData.displayName} created successfully!`);
         } catch (e) {
-            console.error("Error storing user information in Firestore:", e.code, e.message);
-            alert(`An error occurred while storing the user information: ${e.message}`);
+            const msg = e && e.message ? e.message : String(e);
+            console.error("Error storing user information in Firestore:", e.code || '', msg);
+            
+            // Log the error
+            await logError(collectionName, "Failed to store user information", {
+                userId: user.uid,
+                email: email,
+                error: msg
+            });
+            
+            alert(`An error occurred while storing the user information: ${msg}`);
         }
     } catch (e) {
-        console.error("Error adding user:", e.code, e.message);
-        alert(`An error occurred: ${e.message}`);
+        const msg = e && e.message ? e.message : String(e);
+        console.error("Error adding user:", e.code || '', msg);
+        
+        // Log the error
+        await logError('auth', "Failed to create user", {
+            email: email,
+            displayName: additionalData.displayName,
+            error: msg
+        });
+        
+        alert(`An error occurred: ${msg}`);
     }
 }
 // Load user data for editing
@@ -219,10 +252,17 @@ async function updateUser(userId, collectionName, updatedData) {
             firestoreData.Description = updatedData.longDescription;
         }
         
-        // Update the user's document in Firestore
+        // Get old data for logging
         const userRef = doc(db, collectionName, userId);
+        const oldDataSnap = await getDoc(userRef);
+        const oldData = oldDataSnap.exists() ? oldDataSnap.data() : null;
+        
+        // Update the user's document in Firestore
         await updateDoc(userRef, firestoreData);
-        await logDatabaseActivity('update', collectionName, userId, firestoreData);
+        
+        // Log the update
+        await logUpdate(collectionName, userId, firestoreData, oldData);
+        
         console.log(`User document with ID ${userId} updated in Firestore.`);
 
         // Refresh the user list to show updated data
@@ -233,7 +273,15 @@ async function updateUser(userId, collectionName, updatedData) {
         
         alert("User updated successfully!");
     } catch (error) {
-        console.error("Error updating user:", error);
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error updating user:", error.code || '', msg);
+        
+        // Log the error
+        await logError(collectionName, "Failed to update user", {
+            userId: userId,
+            error: msg
+        });
+        
         alert("An error occurred while updating the user. Please try again.");
     }
 }
@@ -241,10 +289,31 @@ async function updateUser(userId, collectionName, updatedData) {
 // Delete a user
 async function removeUser(userId, collectionName) {
     try {
-        // Delete the user's document from Firestore
+        // Get data before deletion for logging
         const userRef = doc(db, collectionName, userId);
+        const userSnap = await getDoc(userRef);
+        const deletedData = userSnap.exists() ? userSnap.data() : null;
+        
+        if (!userSnap.exists()) {
+            // Skip if the user doesn't exist in this collection
+            return;
+        }
+        
+        // Delete the user's document from Firestore
         await deleteDoc(userRef);
-        await logDatabaseActivity('delete', collectionName, userId, {});
+        
+        // Log the deletion
+        await logDelete(collectionName, userId, deletedData);
+        
+        // Also log as auth event if we have email info
+        if (deletedData && deletedData.email) {
+            await logAuth('user_deleted', {
+                userId: userId,
+                email: deletedData.email,
+                displayName: deletedData.F_Name || 'unknown'
+            });
+        }
+        
         console.log(`User document with ID ${userId} deleted from ${collectionName} collection.`);
 
         // Refresh the user list
@@ -252,7 +321,14 @@ async function removeUser(userId, collectionName) {
         
         alert("User successfully deleted!");
     } catch (error) {
-        console.error("Error removing user:", error);
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error removing user:", error.code || '', msg);
+        
+        // Log the error
+        await logError(collectionName, "Failed to delete user", {
+            userId: userId,
+            error: msg
+        });
 
         // Provide user-friendly feedback
         if (error.code === "auth/requires-recent-login") {
@@ -363,27 +439,7 @@ function addUserToTable(tableBody, userId, userData, collectionName) {
     actionsCell.appendChild(deleteButton);
 }
 
-// Log database activity
-async function logDatabaseActivity(action, collection, documentId, data) {
-    try {
-        const timestamp = new Date();
-        const logData = {
-            userId: auth.currentUser?.uid || 'unknown',
-            action: action,
-            timestamp: timestamp,
-            documentId: documentId,
-            collection: collection,
-            data: data,
-            authorizedBy: auth.currentUser?.uid || 'unknown',
-            editedBy: auth.currentUser?.email || 'unknown'
-        };
-        await addDoc(collection(db, "reports"), logData);
-    } catch (error) {
-        const msg = error && error.message ? error.message : String(error);
-        console.error("Error logging activity: ", error.code || '', msg);
-        alert(`An error occurred while logging activity: ${msg}`);
-    }
-}
+// This function is deprecated - using the new logging.js module instead
 
 // Test Firestore permissions for a specific collection
 async function testFirestorePermissions(collectionName) {

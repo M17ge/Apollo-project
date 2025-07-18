@@ -2,6 +2,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/fireba
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+// Import logging functions
+import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -21,6 +23,12 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Log page access at the beginning
+    logActivity('page_access', 'navigation', null, { 
+        page: 'payment',
+        referrer: document.referrer
+    });
+
     onAuthStateChanged(auth, (user) => {
         if (user) {
             console.log("User is logged in:", user);
@@ -132,11 +140,18 @@ async function addOrUpdatePayment(paymentID, approval_manager, status, inventory
         
         let docRef;
         if (paymentID) {
-            // Update existing payment
+            // Get the old data for logging
             const paymentRef = doc(db, "payments", paymentID);
+            const docSnap = await getDoc(paymentRef);
+            const oldData = docSnap.exists() ? docSnap.data() : null;
+            
+            // Update existing payment
             await updateDoc(paymentRef, paymentData);
             docRef = paymentRef;
-            await logDatabaseActivity('update', 'payments', paymentID, paymentData);
+            
+            // Log the update with our new logging module
+            await logUpdate('payments', paymentID, paymentData, oldData);
+            
             alert("Payment updated successfully!");
         } else {
             // Add approval_time for new payments
@@ -144,13 +159,24 @@ async function addOrUpdatePayment(paymentID, approval_manager, status, inventory
             
             // Create new payment
             docRef = await addDoc(collection(db, "payments"), paymentData);
-            await logDatabaseActivity('create', 'payments', docRef.id, paymentData);
+            
+            // Log the creation with our new logging module
+            await logCreate('payments', docRef.id, paymentData);
+            
             alert("Payment added successfully!");
         }
         fetchPayments();
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);
         console.error("Error adding/updating payment: ", error.code || '', msg);
+        
+        // Log the error with our new logging module
+        await logError('payment', "Failed to save payment", { 
+            paymentID, 
+            error: msg,
+            attempted_action: paymentID ? 'update' : 'create'
+        });
+        
         alert(`An error occurred while saving the payment: ${msg}`);
     }
 }
@@ -159,14 +185,29 @@ async function addOrUpdatePayment(paymentID, approval_manager, status, inventory
 async function deletePayment(paymentID) {
     if (confirm('Are you sure you want to delete this payment?')) {
         try {
+            // Get the data that will be deleted for logging
             const paymentRef = doc(db, "payments", paymentID);
+            const docSnap = await getDoc(paymentRef);
+            const deletedData = docSnap.exists() ? docSnap.data() : null;
+            
+            // Delete the document
             await deleteDoc(paymentRef);
-            await logDatabaseActivity('delete', 'payments', paymentID, {});
+            
+            // Log the deletion with our new logging module
+            await logDelete('payments', paymentID, deletedData);
+            
             alert("Payment deleted successfully!");
             fetchPayments();
         } catch (error) {
             const msg = error && error.message ? error.message : String(error);
             console.error("Error deleting payment: ", error.code || '', msg);
+            
+            // Log the error with our new logging module
+            await logError('payment', "Failed to delete payment", { 
+                paymentID, 
+                error: msg
+            });
+            
             alert(`An error occurred while deleting the payment: ${msg}`);
         }
     }

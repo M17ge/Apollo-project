@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/fireba
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -21,6 +22,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Log page access
+    logActivity('page_access', 'navigation', null, { page: 'stock' });
+    
     onAuthStateChanged(auth, (user) => {
         if (user) {
             console.log("User is logged in:", user);
@@ -67,9 +71,17 @@ function initializeForms() {
             
             // Check if we're updating or creating
             if (productId) {
+                // Get old data for logging
+                const productRef = doc(db, 'products', productId);
+                const oldDataSnap = await getDoc(productRef);
+                const oldData = oldDataSnap.exists() ? oldDataSnap.data() : null;
+                
                 // Update existing product
-                await updateDoc(doc(db, 'products', productId), productData);
-                await logDatabaseActivity('update', 'products', productId, productData);
+                await updateDoc(productRef, productData);
+                
+                // Log the update
+                await logUpdate('products', productId, productData, oldData);
+                
                 console.log("Product updated with ID: ", productId);
                 alert("Product updated successfully!");
             } else {
@@ -78,7 +90,10 @@ function initializeForms() {
                 
                 // Create a new product document
                 const productDocRef = await addDoc(collection(db, 'products'), productData);
-                await logDatabaseActivity('create', 'products', productDocRef.id, productData);
+                
+                // Log the creation
+                await logCreate('products', productDocRef.id, productData);
+                
                 console.log("Product added with ID: ", productDocRef.id);
                 alert("Product added successfully!");
             }
@@ -91,33 +106,21 @@ function initializeForms() {
             // Refresh the products list
             fetchProducts();
         } catch (e) {
-            console.error("Error with product: ", e.code, e.message);
-            alert(`An error occurred: ${e.message}`);
+            const msg = e && e.message ? e.message : String(e);
+            console.error("Error with product: ", e.code || '', msg);
+            
+            // Log the error
+            await logError('products', "Failed to save product", {
+                name: name,
+                error: msg
+            });
+            
+            alert(`An error occurred: ${msg}`);
         }
     });
 }
 
-// Log database activity
-async function logDatabaseActivity(action, collection, documentId, data) {
-    try {
-        const timestamp = new Date();
-        const logData = {
-            userId: auth.currentUser?.uid || 'unknown',
-            action: action,
-            timestamp: timestamp,
-            documentId: documentId,
-            collection: collection,
-            data: data,
-            authorizedBy: auth.currentUser?.uid || 'unknown',
-            editedBy: auth.currentUser?.email || 'unknown'
-        };
-        await addDoc(collection(db, "reports"), logData);
-    } catch (error) {
-        const msg = error && error.message ? error.message : String(error);
-        console.error("Error logging activity: ", error.code || '', msg);
-        alert(`An error occurred while logging activity: ${msg}`);
-    }
-}
+// This function is deprecated - using the new logging.js module instead
 
 // Fetch and display products data
 async function fetchProducts() {
@@ -219,13 +222,30 @@ async function editProduct(productId) {
 async function deleteProduct(productId) {
     if (confirm('Are you sure you want to delete this product?')) {
         try {
-            await deleteDoc(doc(db, "products", productId));
-            await logDatabaseActivity('delete', 'products', productId, {});
+            // Get data before deletion for logging
+            const productRef = doc(db, "products", productId);
+            const productSnap = await getDoc(productRef);
+            const deletedData = productSnap.exists() ? productSnap.data() : null;
+            
+            // Delete the document
+            await deleteDoc(productRef);
+            
+            // Log the deletion
+            await logDelete('products', productId, deletedData);
+            
             alert("Product deleted successfully!");
             fetchProducts(); // Refresh the products list
         } catch (e) {
-            console.error("Error deleting product: ", e.code, e.message);
-            alert(`An error occurred while deleting the product: ${e.message}`);
+            const msg = e && e.message ? e.message : String(e);
+            console.error("Error deleting product: ", e.code || '', msg);
+            
+            // Log the error
+            await logError('products', "Failed to delete product", {
+                productId,
+                error: msg
+            });
+            
+            alert(`An error occurred while deleting the product: ${msg}`);
         }
     }
 }

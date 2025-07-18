@@ -2,6 +2,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/fireba
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+// Import logging functions
+import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -21,6 +23,12 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Log page access at the beginning
+    logActivity('page_access', 'navigation', null, { 
+        page: 'credit',
+        referrer: document.referrer
+    });
+    
     onAuthStateChanged(auth, (user) => {
         if (user) {
             // Set the approvedBy field to current user's ID
@@ -169,16 +177,26 @@ async function addOrUpdateCredit(creditId, amount, approvedBy, cleared, descript
         let actionType;
         
         if (creditId) {
-            // Update existing credit
+            // Get the old data for logging
             const creditRef = doc(db, "credit_requests", creditId);
+            const docSnap = await getDoc(creditRef);
+            const oldData = docSnap.exists() ? docSnap.data() : null;
+            
+            // Update existing credit
             await updateDoc(creditRef, creditData);
             docRef = creditRef;
-            await logDatabaseActivity('update', 'credit_requests', creditId, creditData);
+            
+            // Log the update with our new logging module
+            await logUpdate('credit_requests', creditId, creditData, oldData);
+            
             actionType = 'updated';
         } else {
             // Create new credit
             docRef = await addDoc(collection(db, "credit_requests"), creditData);
-            await logDatabaseActivity('create', 'credit_requests', docRef.id, creditData);
+            
+            // Log the creation with our new logging module
+            await logCreate('credit_requests', docRef.id, creditData);
+            
             actionType = 'created';
         }
         
@@ -247,8 +265,11 @@ async function deleteCredit(creditId) {
         const creditDoc = await getDoc(creditRef);
         const creditData = creditDoc.exists() ? creditDoc.data() : {};
         
+        // Delete the document
         await deleteDoc(creditRef);
-        await logDatabaseActivity('delete', 'credit_requests', creditId, creditData);
+        
+        // Log the deletion with our new logging module
+        await logDelete('credit_requests', creditId, creditData);
         
         // Success message
         const successMessage = document.createElement('div');
@@ -270,6 +291,12 @@ async function deleteCredit(creditId) {
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);
         console.error("Error deleting credit: ", error.code || '', msg);
+        
+        // Log the error with our new logging module
+        await logError('credit', "Failed to delete credit", { 
+            creditId, 
+            error: msg
+        });
         
         // Show error message
         const errorMessage = document.createElement('div');

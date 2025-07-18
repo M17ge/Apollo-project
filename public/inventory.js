@@ -2,6 +2,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/fireba
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+// Import logging functions
+import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -21,6 +23,12 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Log page access at the beginning
+    logActivity('page_access', 'navigation', null, { 
+        page: 'inventory',
+        referrer: document.referrer
+    });
+
     onAuthStateChanged(auth, (user) => {
         if (user) {
             // Store user ID for use in forms
@@ -99,9 +107,16 @@ function initializeForms() {
             
             // Check if we're updating an existing document
             if (inventoryId) {
+                // Get the old data for logging
+                const docSnap = await getDoc(doc(db, "inventory", inventoryId));
+                const oldData = docSnap.exists() ? docSnap.data() : null;
+                
                 // Update existing document
                 await updateDoc(doc(db, "inventory", inventoryId), inventoryData);
-                await logDatabaseActivity('update', 'inventory', inventoryId, inventoryData);
+                
+                // Log the update with our new logging module
+                await logUpdate('inventory', inventoryId, inventoryData, oldData);
+                
                 alert("Inventory updated successfully!");
                 // Reset form state for new submissions
                 document.getElementById('submitInventory').textContent = 'Add Inventory';
@@ -109,7 +124,9 @@ function initializeForms() {
             } else {
                 // Add a new document
                 docRef = await addDoc(collection(db, "inventory"), inventoryData);
-                await logDatabaseActivity('create', 'inventory', docRef.id, inventoryData);
+                
+                // Log the creation with our new logging module
+                await logCreate('inventory', docRef.id, inventoryData);
                 alert("Inventory added successfully!");
             }
             
@@ -147,9 +164,16 @@ function initializeForms() {
             
             // Check if we're updating an existing supplier
             if (supplierId) {
+                // Get the old data for logging
+                const docSnap = await getDoc(doc(db, "farmers", supplierId));
+                const oldData = docSnap.exists() ? docSnap.data() : null;
+                
                 // Update existing supplier
                 await updateDoc(doc(db, "farmers", supplierId), supplierData);
-                await logDatabaseActivity('update', 'farmers', supplierId, supplierData);
+                
+                // Log the update with our new logging module
+                await logUpdate('farmers', supplierId, supplierData, oldData);
+                
                 alert("Supplier updated successfully!");
                 // Reset form state for new submissions
                 document.getElementById('submitSupplier').textContent = 'Add Supplier';
@@ -157,7 +181,9 @@ function initializeForms() {
             } else {
                 // Add a new supplier
                 docRef = await addDoc(collection(db, "farmers"), supplierData);
-                await logDatabaseActivity('create', 'farmers', docRef.id, supplierData);
+                
+                // Log the creation with our new logging module
+                await logCreate('farmers', docRef.id, supplierData);
                 alert("Supplier added successfully!");
             }
             
@@ -361,7 +387,17 @@ function editInventory(id, data) {
 async function deleteInventory(id) {
     if (confirm('Are you sure you want to delete this inventory item?')) {
         try {
-            await deleteDoc(doc(db, "inventory", id));
+            // Get the data that will be deleted for logging
+            const docRef = doc(db, "inventory", id);
+            const docSnap = await getDoc(docRef);
+            const deletedData = docSnap.exists() ? docSnap.data() : null;
+            
+            // Delete the document
+            await deleteDoc(docRef);
+            
+            // Log the deletion with our new logging module
+            await logDelete('inventory', id, deletedData);
+            
             alert('Inventory item deleted successfully');
             fetchInventoryData(); // Refresh the table
         } catch (error) {
@@ -403,8 +439,17 @@ function editSupplier(id, data) {
 async function deleteSupplier(id) {
     if (confirm('Are you sure you want to delete this supplier?')) {
         try {
-            await deleteDoc(doc(db, "farmers", id));
-            await logDatabaseActivity('delete', 'farmers', id, { id });
+            // Get the data that will be deleted for logging
+            const docRef = doc(db, "farmers", id);
+            const docSnap = await getDoc(docRef);
+            const deletedData = docSnap.exists() ? docSnap.data() : null;
+            
+            // Delete the document
+            await deleteDoc(docRef);
+            
+            // Log the deletion with our new logging module
+            await logDelete('farmers', id, deletedData);
+            
             alert('Supplier deleted successfully');
             fetchSupplierData(); // Refresh the table
         } catch (error) {
