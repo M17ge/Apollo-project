@@ -22,13 +22,6 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         console.log("User is logged in:", user);
         // User is logged in, show landing page
-        
-        // Log page access with user information
-        await logActivity('page_access', 'navigation', null, { 
-            page: 'landing',
-            userId: user.uid,
-            email: user.email
-        });
     } else {
         // No user, redirect to login
         window.location.href = 'index.html';
@@ -62,29 +55,11 @@ function toggleProfileDropdown() {
 window.toggleProfileDropdown = toggleProfileDropdown;
 // Function to sign out
 function signOutUser() {
-    // Capture user information before sign out
-    const user = auth.currentUser;
-    const userData = user ? {
-        userId: user.uid,
-        email: user.email,
-        displayName: user.displayName || null
-    } : { userId: 'unknown' };
-    
-    signOut(auth).then(async () => {
+    signOut(auth).then(() => {
         console.log('User signed out.');
-        
-        // Log the sign out event
-        await logAuth('auth_logout', userData);
-        
         window.location.href = 'index.html';
-    }).catch(async (error) => {
+    }).catch((error) => {
         console.error('Error signing out:', error);
-        
-        // Log sign out error
-        await logError('auth', 'Failed to sign out', {
-            ...userData,
-            errorMessage: error.message
-        });
     });
 }
 // Attach signOutUser function to the window object to make it accessible globally

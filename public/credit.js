@@ -23,11 +23,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Log page access at the beginning
-    logActivity('page_access', 'navigation', null, { 
-        page: 'credit',
-        referrer: document.referrer
-    });
     
     onAuthStateChanged(auth, (user) => {
         if (user) {

@@ -21,9 +21,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Log page access
-    logActivity('page_access', 'navigation', null, { page: 'userman' });
-    
     // Check authentication state
     onAuthStateChanged(auth, (user) => {
         if (user) {

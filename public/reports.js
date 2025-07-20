@@ -26,15 +26,40 @@ let previousAuthState = null;
 // Import our logging functions
 import { logActivity, logAuth, logError } from './logging.js';
 
+// Ensure required elements exist or create them
+function ensureRequiredElements() {
+    // Check for userCreatedAt element
+    if (!document.getElementById('userCreatedAt')) {
+        console.warn("Creating missing 'userCreatedAt' element");
+        const container = document.querySelector('.user-info') || document.body;
+        const element = document.createElement('div');
+        element.id = 'userCreatedAt';
+        element.className = 'user-metadata';
+        container.appendChild(element);
+    }
+    
+    // Check for adminId element
+    if (!document.getElementById('adminId')) {
+        console.warn("Creating missing 'adminId' element");
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.id = 'adminId';
+        document.body.appendChild(hiddenInput);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Log page access
-    logActivity('page_access', 'navigation', null, { page: 'reports' });
+    // Ensure required elements exist
+    ensureRequiredElements();
     
     // Set up the auth state change listener
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             console.log("User is logged in:", user);
-            document.getElementById('adminId').value = user.uid;
+            const adminIdElement = document.getElementById('adminId');
+            if (adminIdElement) {
+                adminIdElement.value = user.uid;
+            }
             
             // Optionally, fetch user metadata
             await fetchUserMetadata(user.uid);
@@ -59,20 +84,33 @@ async function fetchUserMetadata(userId) {
     try {
         // Get the element and check if it exists first
         const userCreatedAtElement = document.getElementById('userCreatedAt');
+        
+        // Early return with a more visible warning if the element is missing
         if (!userCreatedAtElement) {
-            console.warn("Element with ID 'userCreatedAt' not found in the DOM");
+            console.warn("Element with ID 'userCreatedAt' not found in the DOM. This element needs to be added to reports.html.");
             return; // Exit early if element doesn't exist
         }
         
-        // Use lowercase 'users' if that's your collection name
-        const userDoc = await getDoc(doc(db, "users", userId));
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            userCreatedAtElement.textContent = userData.createdAt
-                ? new Date(userData.createdAt.seconds * 1000).toLocaleString()
-                : "N/A";
-        } else {
-            userCreatedAtElement.textContent = "N/A";
+        try {
+            // Use lowercase 'users' if that's your collection name
+            const userDoc = await getDoc(doc(db, "users", userId));
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                userCreatedAtElement.textContent = userData.createdAt
+                    ? new Date(userData.createdAt.seconds * 1000).toLocaleString()
+                    : "N/A";
+            } else {
+                userCreatedAtElement.textContent = "N/A";
+            }
+        } catch (dbError) {
+            // Handle database-related errors
+            const dbMsg = dbError && dbError.message ? dbError.message : String(dbError);
+            console.error("Database error fetching user metadata: ", dbError.code || '', dbMsg);
+            
+            // Safely set the text content
+            if (userCreatedAtElement) {
+                userCreatedAtElement.textContent = "Error loading data";
+            }
         }
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);
@@ -150,11 +188,6 @@ async function logDatabaseActivity(eventType, collection, documentId, data, opti
 // Function to handle printing the report
 function printReport() {
     try {
-        // Log the print action
-        logActivity('print_report', 'user_actions', null, {
-            timestamp: new Date().toISOString()
-        });
-        
         // Store the original page title
         const originalTitle = document.title;
         
@@ -203,17 +236,6 @@ function printReport() {
 // Function to download the report as PDF
 function downloadReportAsPDF() {
     try {
-        // Log the download action
-        logActivity('download_pdf', 'user_actions', null, {
-            filters: {
-                startDate: document.getElementById('startDate').value || 'N/A',
-                endDate: document.getElementById('endDate').value || 'N/A',
-                collection: document.getElementById('collectionFilter').value || 'All',
-                action: document.getElementById('actionFilter').value || 'All'
-            },
-            timestamp: new Date().toISOString()
-        });
-        
         // Get table data
         const table = document.getElementById('reportTable');
         if (!table || !table.rows || table.rows.length <= 1) {
@@ -317,11 +339,6 @@ async function fetchReports() {
         const collectionFilter = document.getElementById('collectionFilter').value;
         const actionFilter = document.getElementById('actionFilter').value;
         
-        // Log the report generation request
-        await logActivity('generate_report', 'user_actions', null, { 
-            filters: { startDate, endDate, collection: collectionFilter, action: actionFilter }
-        });
-
         let queryRef = collection(db, "reports"); // Updated to use 'reports' collection
 
         // Apply filters

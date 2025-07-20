@@ -18,9 +18,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Log page access
-    logActivity('page_access', 'navigation', null, { page: 'login' });
-    
     const form = document.getElementById('login-form');
 
     form.addEventListener('submit', function(event) {
@@ -35,32 +32,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Authenticate the user with Firebase
                 return signInWithEmailAndPassword(auth, email, password);
             })
-            .then(async (userCredential) => {
+            .then((userCredential) => {
                 // Signed in
                 const user = userCredential.user;
                 console.log('User signed in:', user);
                 
-                // Log successful authentication
-                await logAuth('auth_login_success', {
-                    userId: user.uid,
-                    email: user.email,
-                    displayName: user.displayName || null
-                });
-                
                 // Redirect to landing.html
                 window.location.href = 'Landing.html';
             })
-            .catch(async (error) => {
+            .catch((error) => {
                 const errorCode = error.code;
                 const errorMessage = error.message;
                 console.error('Error signing in:', errorCode, errorMessage);
-                
-                // Log failed authentication attempt
-                await logError('auth', 'Failed login attempt', {
-                    email: email, // Only log the email that was used for the attempt
-                    errorCode: errorCode,
-                    errorMessage: errorMessage
-                });
                 
                 alert('Error signing in: ' + errorMessage);
             });

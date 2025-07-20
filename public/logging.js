@@ -115,15 +115,4 @@ window.addEventListener('unhandledrejection', (event) => {
     });
 });
 
-// Add a simple auth state observer to log auth events
-auth.onAuthStateChanged(user => {
-    if (user) {
-        // User signed in
-        logAuth('login', user.uid, {
-            email: user.email,
-            displayName: user.displayName
-        });
-    }
-});
-
 console.log('Apollo logging system activated');
