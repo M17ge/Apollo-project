@@ -17,14 +17,76 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
+
+// WebView Authentication Functions
+async function authenticateFromUrlToken() {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        
+        if (!token) return false;
+        
+        const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${firebaseConfig.apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken: token })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.users && data.users.length > 0) {
+                const userData = data.users[0];
+                sessionStorage.setItem('webviewAuth', JSON.stringify({
+                    authenticated: true,
+                    user: {
+                        uid: userData.localId,
+                        email: userData.email,
+                        displayName: userData.displayName || 'WebView User'
+                    },
+                    timestamp: Date.now()
+                }));
+                return true;
+            }
+        }
+        return false;
+    } catch (error) {
+        console.error('Token authentication failed:', error);
+        return false;
+    }
+}
+
+function isAuthenticatedViaWebView() {
+    try {
+        const authInfo = sessionStorage.getItem('webviewAuth');
+        if (authInfo) {
+            const parsed = JSON.parse(authInfo);
+            return (Date.now() - parsed.timestamp) < 3600000; // 1 hour
+        }
+    } catch (error) {
+        console.error('Error checking WebView auth:', error);
+    }
+    return false;
+}
+
 // Check if user is authenticated
-onAuthStateChanged(auth, async (user) => {
-    if (user) {
-        console.log("User is logged in:", user);
-        // User is logged in, show landing page
+// Enhanced authentication check
+document.addEventListener('DOMContentLoaded', async () => {
+    const tokenAuthSuccess = await authenticateFromUrlToken();
+    
+    if (tokenAuthSuccess) {
+        console.log('✅ WebView authentication successful');
+        // User is authenticated via WebView token
     } else {
-        // No user, redirect to login
-        window.location.href = 'index.html';
+        // Fall back to Firebase authentication
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                console.log("User is logged in:", user);
+                // User is logged in, show landing page
+            } else if (!isAuthenticatedViaWebView()) {
+                // No user, redirect to login
+                window.location.href = 'index.html';
+            }
+        });
     }
 });
 // Function to toggle sidebar

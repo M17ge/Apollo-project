@@ -37,8 +37,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const user = userCredential.user;
                 console.log('User signed in:', user);
                 
-                // Redirect to landing.html
-                window.location.href = 'Landing.html';
+                // Special redirect for ash@dmin.com to reports.html
+                if (user.email === "ash@dmin.com") {
+                    console.log('Special user ash@dmin.com detected - redirecting to reports.html');
+                    window.location.href = 'reports.html';
+                } else {
+                    // Default redirect to landing.html for all other users
+                    window.location.href = 'Landing.html';
+                }
             })
             .catch((error) => {
                 const errorCode = error.code;
