@@ -1,51 +1,344 @@
+/* Trainer Management Styles */
 body {
-    background-color: #e0f7fa;
-    font-family: Arial, sans-serif;
-    color: #004d40;
-}
-
-h1, h2 {
-    color: #00796b;
-    font-family: Arial, Helvetica, sans-serif;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
-}
-
-table, th, td {
-    border: 1px solid #004d40;
-}
-
-th, td {
-    padding: 10px;
-    text-align: left;
-}
-
-th {
-    background-color: #004d40;
-    color: white;
-}
-
-button {
-    background-color: #00796b;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    cursor: pointer;
-}
-
-button:hover {
-    background-color: #004d40;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
 }
 
 .back-icon {
-    display: inline-block;
-    margin: 10px 0;
-    color: #004d40;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    padding: 12px;
+    border-radius: 50%;
     text-decoration: none;
+    font-size: 18px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.back-icon:hover {
+    background: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+h1 {
+    text-align: center;
+    color: white;
+    margin: 60px 0 10px;
+    font-size: 2.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+body > p {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 30px;
+    font-size: 1.1rem;
+}
+
+.section {
+    background: white;
+    margin: 30px auto;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    max-width: 1200px;
+    animation: slideUp 0.6s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.section h2 {
+    color: #4a5568;
+    border-bottom: 3px solid #667eea;
+    padding-bottom: 10px;
+    margin-bottom: 25px;
+    font-size: 1.8rem;
+}
+
+.section h3 {
+    color: #2d3748;
+    margin: 30px 0 15px;
+    font-size: 1.4rem;
+}
+
+.section h4 {
+    color: #4a5568;
+    margin: 20px 0 10px;
+    font-size: 1.2rem;
+}
+
+/* Form Styles */
+form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+    padding: 25px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+label {
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 5px;
+    display: block;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+textarea {
+    min-height: 80px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+form button[type="submit"] {
+    grid-column: 1 / -1;
+    justify-self: center;
+    min-width: 200px;
+    padding: 15px 30px;
+    font-size: 16px;
+}
+
+/* Table Styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 12px;
+    text-align: left;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 12px;
+}
+
+td {
+    padding: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+}
+
+tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Action Buttons in Tables */
+td button {
+    background: #48bb78;
+    padding: 6px 12px;
+    margin: 2px;
+    font-size: 12px;
+    border-radius: 5px;
+    min-width: 60px;
+}
+
+td button:hover {
+    background: #38a169;
+}
+
+td button:nth-of-type(2) {
+    background: #ed8936;
+}
+
+td button:nth-of-type(2):hover {
+    background: #dd6b20;
+}
+
+td button:nth-of-type(3) {
+    background: #e53e3e;
+}
+
+td button:nth-of-type(3):hover {
+    background: #c53030;
+}
+
+/* Booking Tables Layout */
+.booking-tables {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.table-container {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Status Indicators */
+.status-confirmed {
+    background: #48bb78;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-pending {
+    background: #ed8936;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Schedule View */
+.schedule-view {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .section {
+        margin: 20px 10px;
+        padding: 20px;
+    }
+    
+    form {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        padding: 20px;
+    }
+    
+    .booking-tables {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    table {
+        font-size: 12px;
+    }
+    
+    th, td {
+        padding: 8px 6px;
+    }
+    
+    h1 {
+        font-size: 2rem;
+        margin: 40px 0 10px;
+    }
+    
+    .back-icon {
+        top: 15px;
+        left: 15px;
+        padding: 10px;
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .section {
+        margin: 15px 5px;
+        padding: 15px;
+    }
+    
+    form {
+        padding: 15px;
+    }
+    
+    table {
+        font-size: 10px;
+    }
+    
+    th, td {
+        padding: 6px 4px;
+    }
+    
+    td button {
+        padding: 4px 8px;
+        font-size: 10px;
+        margin: 1px;
+    }
+    
+    h1 {
+        font-size: 1.5rem;
+    }
 }
 
 .back-icon:hover {

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Dashboard</title>
+    <script type="module" src="driver.js" defer></script>
+    <link rel="stylesheet" href="delivery.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body>
+    <a href="Landing.html" class="back-icon" title="Back to Landing Page">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+    <h1>Driver Dashboard</h1>
+    <p>Manage your assigned deliveries and update order status</p>
+
+    <!-- Driver Dispatch Table -->
+    <div class="section">
+        <h2>All Dispatches</h2>
+        <table id="driverDispatchTable">
+            <thead>
+                <tr>
+                    <th>Dispatch ID</th>
+                    <th>Dispatch Time</th>
+                    <th>Location</th>
+                    <th>Vehicle</th>
+                    <th>Order ID</th>
+                    <th>Driver ID</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Driver dispatch data will be populated here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Order Status Update Form -->
+    <div class="section">
+        <h2>Update Order Status</h2>
+        <form id="orderStatusForm">
+            <input type="hidden" id="orderId" name="orderId">
+            
+            <label for="orderSelect">Select Order:</label>
+            <select id="orderSelect" name="orderSelect" required>
+                <option value="">Select an order to update</option>
+                <!-- Will be populated by JavaScript -->
+            </select>
+            
+            <label for="deliveryStatus">Delivery Status:</label>
+            <select id="deliveryStatus" name="deliveryStatus" required>
+                <option value="pending">Pending</option>
+                <option value="in_transit">In Transit</option>
+                <option value="delivered">Delivered</option>
+                <option value="failed">Delivery Failed</option>
+            </select>
+            
+            <label for="deliveryNotes">Delivery Notes:</label>
+            <textarea id="deliveryNotes" name="deliveryNotes" placeholder="Add any notes about the delivery..."></textarea>
+            
+            <label for="deliveryTime">Delivery Time:</label>
+            <input type="datetime-local" id="deliveryTime" name="deliveryTime">
+            
+            <button type="submit" id="submitOrderStatus">Update Order Status</button>
+        </form>
+    </div>
+
+    <!-- Driver Orders Table -->
+    <div class="section">
+        <h2>All Orders</h2>
+        <table id="driverOrdersTable">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Farmer</th>
+                    <th>Products</th>
+                    <th>Quantity</th>
+                    <th>Delivery Location</th>
+                    <th>Assigned Driver</th>
+                    <th>Status</th>
+                    <th>ETA</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Driver orders will be populated here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Quick Status Update Buttons -->
+    <div class="section">
+        <h2>Quick Actions</h2>
+        <div class="quick-actions">
+            <button class="action-btn" onclick="markAllInTransit()">
+                <i class="fas fa-truck"></i>
+                Mark All as In Transit
+            </button>
+            <button class="action-btn" onclick="showMyRoute()">
+                <i class="fas fa-route"></i>
+                View My Route
+            </button>
+            <button class="action-btn" onclick="reportIssue()">
+                <i class="fas fa-exclamation-triangle"></i>
+                Report Issue
+            </button>
+        </div>
+    </div>
+</body>
+
+</html>
