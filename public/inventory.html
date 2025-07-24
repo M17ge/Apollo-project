@@ -64,14 +64,23 @@
         <form id="supplierForm">
             <input type="hidden" id="supplierId" name="supplierId">
             
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name" required>
+            <label for="supplierName">Supplier Name:</label>
+            <input type="text" id="supplierName" name="supplierName" required>
             
-            <label for="information">Information:</label>
-            <textarea id="information" name="information" required placeholder="Enter information about the supplier"></textarea>
+            <label for="supplierDescription">Description:</label>
+            <textarea id="supplierDescription" name="supplierDescription" required placeholder="Enter description about the supplier/products"></textarea>
             
-            <label for="dateSupplied">Date Registered:</label>
-            <input type="date" id="dateSupplied" name="dateSupplied" required>
+            <label for="price">Price:</label>
+            <input type="number" id="price" name="price" step="0.01" required>
+            
+            <label for="quantityperitem">Quantity Per Item:</label>
+            <input type="text" id="quantityperitem" name="quantityperitem" required placeholder="e.g., 10kg, 5L, 100pcs">
+            
+            <label for="productrequested">Products Requested:</label>
+            <textarea id="productrequested" name="productrequested" required placeholder="Enter products requested (comma separated)"></textarea>
+            
+            <label for="arrived">Arrived:</label>
+            <input type="checkbox" id="arrived" name="arrived">
             
             <button type="submit" id="submitSupplier">Add Supplier</button>
         </form>
@@ -81,9 +90,12 @@
         <thead>
             <tr>
                 <th>Supplier ID</th>
-                <th>Name</th>
-                <th>Information</th>
-                <th>Date Registered</th>
+                <th>Supplier Name</th>
+                <th>Description</th>
+                <th>Price</th>
+                <th>Quantity Per Item</th>
+                <th>Products Requested</th>
+                <th>Arrived</th>
                 <th>Actions</th>
             </tr>
         </thead>

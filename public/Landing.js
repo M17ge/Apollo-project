@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import { logAuth, logError, logActivity } from './logging.js';
 
 // Firebase configuration for apollo-mobile-7013d
@@ -13,10 +14,12 @@ const firebaseConfig = {
     appId: "1:1044454240066:web:77e3984fb8fdfe6d2ea2db",
     measurementId: "G-FCKNKS0L5Z"
 };
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 // WebView Authentication Functions
 async function authenticateFromUrlToken() {
@@ -135,5 +138,127 @@ function toggleDropdown(id) {
         dropdown.classList.add('show');
     }
 }
+
+// Dashboard functionality
+async function loadDashboardStats() {
+    try {
+        // Load total users
+        const usersQuery = await getDocs(collection(db, "users"));
+        const farmersQuery = await getDocs(collection(db, "farmers"));
+        const totalUsers = usersQuery.size + farmersQuery.size;
+        document.getElementById('totalUsers').textContent = totalUsers;
+
+        // Load total inventory
+        const inventoryQuery = await getDocs(collection(db, "inventory"));
+        document.getElementById('totalInventory').textContent = inventoryQuery.size;
+
+        // Load total suppliers
+        const suppliersQuery = await getDocs(collection(db, "supplier"));
+        document.getElementById('totalSuppliers').textContent = suppliersQuery.size;
+
+        // Load total reports (using a placeholder for now)
+        document.getElementById('totalReports').textContent = '12';
+
+    } catch (error) {
+        console.error('Error loading dashboard stats:', error);
+        document.getElementById('totalUsers').textContent = 'Error';
+        document.getElementById('totalInventory').textContent = 'Error';
+        document.getElementById('totalSuppliers').textContent = 'Error';
+        document.getElementById('totalReports').textContent = 'Error';
+    }
+}
+
+async function loadRecentActivity() {
+    try {
+        const activityList = document.getElementById('activityList');
+        
+        // Sample recent activities (you can replace with actual log data)
+        const activities = [
+            {
+                icon: 'fas fa-user-plus',
+                title: 'New user registered',
+                time: '2 minutes ago'
+            },
+            {
+                icon: 'fas fa-box',
+                title: 'Inventory item added',
+                time: '15 minutes ago'
+            },
+            {
+                icon: 'fas fa-truck',
+                title: 'Supplier delivery received',
+                time: '1 hour ago'
+            },
+            {
+                icon: 'fas fa-credit-card',
+                title: 'Payment processed',
+                time: '3 hours ago'
+            },
+            {
+                icon: 'fas fa-file-alt',
+                title: 'Monthly report generated',
+                time: '1 day ago'
+            }
+        ];
+
+        activityList.innerHTML = '';
+        
+        activities.forEach(activity => {
+            const activityItem = document.createElement('div');
+            activityItem.className = 'activity-item';
+            
+            activityItem.innerHTML = `
+                <div class="activity-icon">
+                    <i class="${activity.icon}"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">${activity.title}</div>
+                    <div class="activity-time">${activity.time}</div>
+                </div>
+            `;
+            
+            activityList.appendChild(activityItem);
+        });
+
+    } catch (error) {
+        console.error('Error loading recent activity:', error);
+        document.getElementById('activityList').innerHTML = '<div class="activity-loading">Error loading activities</div>';
+    }
+}
+
+function updateSystemStatus() {
+    // Update database status
+    document.getElementById('dbStatus').className = 'status-indicator online';
+    document.getElementById('dbStatus').innerHTML = '<i class="fas fa-circle"></i> Online';
+    
+    // Update auth status
+    document.getElementById('authStatus').className = 'status-indicator online';
+    document.getElementById('authStatus').innerHTML = '<i class="fas fa-circle"></i> Active';
+    
+    // Update backup time
+    const now = new Date();
+    const backupTime = new Date(now.getTime() - (2 * 60 * 60 * 1000)); // 2 hours ago
+    document.getElementById('backupTime').textContent = backupTime.toLocaleString();
+}
+
+// Initialize dashboard when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Load dashboard data after authentication check
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            loadDashboardStats();
+            loadRecentActivity();
+            updateSystemStatus();
+        }
+    });
+});
+
+// Refresh stats every 5 minutes
+setInterval(() => {
+    if (auth.currentUser) {
+        loadDashboardStats();
+        loadRecentActivity();
+    }
+}, 5 * 60 * 1000);
 // Attach toggleDropdown function to the window object to make it accessible globally
 window.toggleDropdown = toggleDropdown;

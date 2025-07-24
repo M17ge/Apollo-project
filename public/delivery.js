@@ -3,6 +3,14 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebas
 import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
+// Import database utilities for foreign key management
+import { 
+    initializeDatabase, 
+    validateDocumentReferences, 
+    populateReferenceDropdown, 
+    checkForOrphanedReferences,
+    DISPLAY_FORMATTERS 
+} from './database-utils.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -21,11 +29,18 @@ const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Initialize database utilities
+initializeDatabase(db);
+
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
             console.log("User is logged in:", user);
             document.getElementById('manger_id').value = user.uid;
+            
+            // Initialize foreign key dropdowns
+            initializeForeignKeyDropdowns();
+            
             fetchBookingData();
             fetchOrderingData();
             fetchDispatchData();
@@ -550,3 +565,22 @@ document.getElementById('orderingForm').addEventListener('submit', function(even
     event.target.reset();
     delete event.target.dataset.orderId;
 });
+
+// Initialize foreign key dropdowns
+async function initializeForeignKeyDropdowns() {
+    try {
+        // Populate driver dropdown with users who have driver role
+        await populateReferenceDropdown('driver_id', 'users', 'id', 
+            (data, id) => `${data.F_Name || 'Unknown'} - Driver (${id.substring(0, 8)})`);
+        
+        // Populate booking dropdown
+        await populateReferenceDropdown('booking_id', 'bookings', 'id', 
+            (data, id) => `Booking ${id.substring(0, 8)} - ${data.farmer_id ? 'Farmer: ' + data.farmer_id.substring(0, 8) : 'No Farmer'}`);
+        
+        // Populate order dropdown
+        await populateReferenceDropdown('order_id', 'order', 'id', DISPLAY_FORMATTERS.order);
+        
+    } catch (error) {
+        console.error('Error initializing foreign key dropdowns:', error);
+    }
+}

@@ -38,8 +38,11 @@
         <label for="quantity">Quantity:</label>
         <input type="number" id="quantity" required min="0">
         
-        <label for="inventory_id">Inventory ID:</label>
-        <input type="text" id="inventory_id" placeholder="Enter inventory ID">
+        <label for="inventory_id">Inventory Lot:</label>
+        <select id="inventory_id">
+            <option value="">Select inventory lot (optional)</option>
+            <!-- Will be populated by JavaScript -->
+        </select>
         
         <label for="arrived">Status:</label>
         <select id="arrived" required>

@@ -4,6 +4,13 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 // Import logging functions
 import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
+// Import database utilities for foreign key management
+import { 
+    initializeDatabase, 
+    validateDocumentReferences, 
+    populateReferenceDropdown, 
+    DISPLAY_FORMATTERS 
+} from './database-utils.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -22,12 +29,19 @@ const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Initialize database utilities
+initializeDatabase(db);
+
 document.addEventListener('DOMContentLoaded', () => {
 
     onAuthStateChanged(auth, (user) => {
         if (user) {
             console.log("User is logged in:", user);
             document.getElementById('approval_manager').value = user.uid;
+            
+            // Initialize foreign key dropdowns
+            initializeForeignKeyDropdowns();
+            
             fetchPayments();
         } else {
             console.log("No user is logged in");
@@ -132,6 +146,14 @@ async function addOrUpdatePayment(paymentID, approval_manager, status, inventory
         if (order_id) {
             paymentData.order_id = order_id;
         }
+
+        // Validate foreign key relationships
+        const validation = await validateDocumentReferences('payments', paymentData);
+        
+        if (!validation.valid) {
+            alert('Validation errors:\n' + validation.errors.join('\n'));
+            return;
+        }
         
         let docRef;
         if (paymentID) {
@@ -140,23 +162,23 @@ async function addOrUpdatePayment(paymentID, approval_manager, status, inventory
             const docSnap = await getDoc(paymentRef);
             const oldData = docSnap.exists() ? docSnap.data() : null;
             
-            // Update existing payment
-            await updateDoc(paymentRef, paymentData);
+            // Update existing payment with validated data
+            await updateDoc(paymentRef, validation.validatedData);
             docRef = paymentRef;
             
             // Log the update with our new logging module
-            await logUpdate('payments', paymentID, paymentData, oldData);
+            await logUpdate('payments', paymentID, validation.validatedData, oldData);
             
             alert("Payment updated successfully!");
         } else {
             // Add approval_time for new payments
-            paymentData.approval_time = serverTimestamp();
+            validation.validatedData.approval_time = serverTimestamp();
             
-            // Create new payment
-            docRef = await addDoc(collection(db, "payments"), paymentData);
+            // Create new payment with validated data
+            docRef = await addDoc(collection(db, "payments"), validation.validatedData);
             
             // Log the creation with our new logging module
-            await logCreate('payments', docRef.id, paymentData);
+            await logCreate('payments', docRef.id, validation.validatedData);
             
             alert("Payment added successfully!");
         }
@@ -266,3 +288,20 @@ async function logDatabaseActivity(action, collection, documentId, data) {
 // Make functions available globally for onclick handlers
 window.editPayment = editPayment;
 window.deletePayment = deletePayment;
+
+// Initialize foreign key dropdowns
+async function initializeForeignKeyDropdowns() {
+    try {
+        // Populate inventory dropdown
+        await populateReferenceDropdown('inventory_id', 'inventory', 'id', DISPLAY_FORMATTERS.inventory);
+        
+        // Populate order dropdown
+        await populateReferenceDropdown('order_id', 'order', 'id', DISPLAY_FORMATTERS.order);
+        
+        // Populate approval manager dropdown with users
+        await populateReferenceDropdown('approval_manager', 'users', 'id', DISPLAY_FORMATTERS.users);
+        
+    } catch (error) {
+        console.error('Error initializing foreign key dropdowns:', error);
+    }
+}

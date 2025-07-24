@@ -55,29 +55,103 @@
         </ul>
     </div>
     <div id="main">
-        <h2>Welcome to the Apollo Admin dashboard</h2>
-        <p>Here you can see what actions are needed with a color marker <br>
-            <i class="fas fa-circle red-icon"></i> Important
-            <i class="fas fa-circle yellow-icon"></i> Trivial
-            <i class="fas fa-circle green-icon"></i> Completed
-        </p>
-        <div class="container">
-            <div class="box box1">
-                <h2 class="description-header">Orders</h2>
-                <p class="description-paragraph">Shows Order numbers including intensity and deliveries</p>
+        <h2>Welcome to the Apollo Admin Dashboard</h2>
+        <p class="welcome-text">Manage your agricultural operations efficiently with real-time insights and tools</p>
+        
+        <!-- Dashboard Stats -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalUsers">Loading...</h3>
+                    <p>Total Users</p>
+                </div>
             </div>
-            <div class="box box2">
-                <h2 class="description-header">Payments</h2>
-                <p class="description-paragraph1">Show outgoing payment and ingoing payments and ongoing payments</p>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-boxes"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalInventory">Loading...</h3>
+                    <p>Inventory Items</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-truck"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalSuppliers">Loading...</h3>
+                    <p>Active Suppliers</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalReports">Loading...</h3>
+                    <p>Monthly Reports</p>
+                </div>
             </div>
         </div>
-        <div class="box box3">
-            <h2 class="description-header">Reports</h2>
-            <p class="description-paragraph2">Here the admin can see the reports of the company. Here is the link to the
-                reports
-                <a href="reports.html" class="report-link" title="Reports">
-                    <i class="fas fa-file-alt"></i> Reports</a>
-            </p>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <h3>Quick Actions</h3>
+            <div class="action-buttons">
+                <a href="userman.html" class="action-btn">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Add User</span>
+                </a>
+                <a href="inventory.html" class="action-btn">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Add Inventory</span>
+                </a>
+                <a href="reports.html" class="action-btn">
+                    <i class="fas fa-file-alt"></i>
+                    <span>View Reports</span>
+                </a>
+                <a href="payment.html" class="action-btn">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Payments</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="recent-activity">
+            <h3>Recent Activity</h3>
+            <div class="activity-list" id="activityList">
+                <div class="activity-loading">Loading recent activities...</div>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="system-status">
+            <h3>System Status</h3>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">Database Connection</span>
+                    <span class="status-indicator online" id="dbStatus">
+                        <i class="fas fa-circle"></i> Online
+                    </span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">User Authentication</span>
+                    <span class="status-indicator online" id="authStatus">
+                        <i class="fas fa-circle"></i> Active
+                    </span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Last Backup</span>
+                    <span class="status-time" id="lastBackup">
+                        <i class="fas fa-clock"></i> <span id="backupTime">Loading...</span>
+                    </span>
+                </div>
+            </div>
         </div>
     </div>
 </body>

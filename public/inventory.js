@@ -4,6 +4,14 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 // Import logging functions
 import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
+// Import database utilities for foreign key management
+import { 
+    initializeDatabase, 
+    validateDocumentReferences, 
+    populateReferenceDropdown, 
+    checkForOrphanedReferences,
+    DISPLAY_FORMATTERS 
+} from './database-utils.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -21,6 +29,9 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+// Initialize database utilities
+initializeDatabase(db);
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -68,9 +79,8 @@ async function logDatabaseActivity(action, collection, documentId, data) {
 }
 
 function initializeForms() {
-    // Set current date as default for supplier form
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('dateSupplied').value = today;
+    // Populate supplier dropdown with foreign key relationship
+    populateReferenceDropdown('supplier', 'supplier', 'id', DISPLAY_FORMATTERS.supplier);
 
     // Inventory form submission
     document.getElementById('inventoryForm').addEventListener('submit', async (e) => {
@@ -87,17 +97,25 @@ function initializeForms() {
         const supplier_id = document.getElementById('supplier').value;
         const inventoryId = document.getElementById('inventoryId').value;
         
+        // Create inventory object with foreign key validation
+        const inventoryData = {
+            Description: description,
+            Time_of_Arrival: serverTimestamp(),
+            Total_Price: totalPrice,
+            products: products,
+            supplier_id: supplier_id,
+            manager_id: document.getElementById('managerID')?.value || window.currentUserId || auth.currentUser?.uid || 'unknown'
+        };
+
+        // Validate foreign key relationships
+        const validation = await validateDocumentReferences('inventory', inventoryData);
+        
+        if (!validation.valid) {
+            alert('Validation errors:\n' + validation.errors.join('\n'));
+            return;
+        }
+        
         try {
-            // Create inventory object with the fields matching Firestore schema
-            const inventoryData = {
-                Description: description,
-                Time_of_Arrival: serverTimestamp(),
-                Total_Price: totalPrice,
-                products: products,
-                supplier_id: supplier_id,
-                manager_id: document.getElementById('managerID')?.value || window.currentUserId || auth.currentUser?.uid || 'unknown'
-            };
-            
             let docRef;
             
             // Check if we're updating an existing document
@@ -107,10 +125,10 @@ function initializeForms() {
                 const oldData = docSnap.exists() ? docSnap.data() : null;
                 
                 // Update existing document
-                await updateDoc(doc(db, "inventory", inventoryId), inventoryData);
+                await updateDoc(doc(db, "inventory", inventoryId), validation.validatedData);
                 
                 // Log the update with our new logging module
-                await logUpdate('inventory', inventoryId, inventoryData, oldData);
+                await logUpdate('inventory', inventoryId, validation.validatedData, oldData);
                 
                 alert("Inventory updated successfully!");
                 // Reset form state for new submissions
@@ -140,18 +158,23 @@ function initializeForms() {
     // Supplier form submission
     document.getElementById('supplierForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const name = document.getElementById('name').value;
-        const information = document.getElementById('information').value;
-        const dateSupplied = document.getElementById('dateSupplied').value;
+        const supplierName = document.getElementById('supplierName').value;
+        const description = document.getElementById('supplierDescription').value;
+        const price = parseFloat(document.getElementById('price').value);
+        const quantityperitem = document.getElementById('quantityperitem').value;
+        const productrequested = document.getElementById('productrequested').value.split(',').map(item => item.trim());
+        const arrived = document.getElementById('arrived').checked;
         const supplierId = document.getElementById('supplierId').value;
         
         try {
-            // Create the farmer/supplier data object
+            // Create the supplier data object matching the new schema
             const supplierData = {
-                name,
-                information,
-                dateRegistered: dateSupplied,
-                role: 'supplier', // Adding a role to identify this as a supplier in the farmers collection
+                supplierName,
+                description,
+                price,
+                quantityperitem,
+                productrequested,
+                arrived,
                 updatedAt: serverTimestamp()
             };
             
@@ -160,14 +183,14 @@ function initializeForms() {
             // Check if we're updating an existing supplier
             if (supplierId) {
                 // Get the old data for logging
-                const docSnap = await getDoc(doc(db, "farmers", supplierId));
+                const docSnap = await getDoc(doc(db, "supplier", supplierId));
                 const oldData = docSnap.exists() ? docSnap.data() : null;
                 
                 // Update existing supplier
-                await updateDoc(doc(db, "farmers", supplierId), supplierData);
+                await updateDoc(doc(db, "supplier", supplierId), supplierData);
                 
                 // Log the update with our new logging module
-                await logUpdate('farmers', supplierId, supplierData, oldData);
+                await logUpdate('supplier', supplierId, supplierData, oldData);
                 
                 alert("Supplier updated successfully!");
                 // Reset form state for new submissions
@@ -175,20 +198,16 @@ function initializeForms() {
                 docRef = { id: supplierId };
             } else {
                 // Add a new supplier
-                docRef = await addDoc(collection(db, "farmers"), supplierData);
+                docRef = await addDoc(collection(db, "supplier"), supplierData);
                 
                 // Log the creation with our new logging module
-                await logCreate('farmers', docRef.id, supplierData);
+                await logCreate('supplier', docRef.id, supplierData);
                 alert("Supplier added successfully!");
             }
             
             // Reset form
             document.getElementById('supplierForm').reset();
             document.getElementById('supplierId').value = '';
-            
-            // Set current date as default
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('dateSupplied').value = today;
             
             // Refresh supplier data in dropdown and table
             fetchSupplierData();
@@ -281,8 +300,8 @@ async function fetchSupplierData() {
             supplierSelect.remove(1);
         }
         
-        // Fetch suppliers from farmers collection
-        const querySnapshot = await getDocs(collection(db, "farmers"));
+        // Fetch suppliers from supplier collection
+        const querySnapshot = await getDocs(collection(db, "supplier"));
         
         // Update the suppliers table
         const supplierTableBody = document.getElementById('supplierTable').getElementsByTagName('tbody')[0];
@@ -291,39 +310,34 @@ async function fetchSupplierData() {
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             
-            // Skip if not a supplier (if role is specified and not 'supplier')
-            if (data.role && data.role !== 'supplier') {
-                return;
-            }
-            
             // Add to dropdown
             const option = document.createElement('option');
             option.value = doc.id;
-            option.textContent = data.name || doc.id; // Use name if available, otherwise use ID
+            option.textContent = data.supplierName || doc.id; // Use supplierName if available, otherwise use ID
             supplierSelect.appendChild(option);
             
             // Add to table
             const row = supplierTableBody.insertRow();
             row.insertCell(0).textContent = doc.id;
-            row.insertCell(1).textContent = data.name || '';
-            row.insertCell(2).textContent = data.information || '';
+            row.insertCell(1).textContent = data.supplierName || '';
+            row.insertCell(2).textContent = data.description || '';
+            row.insertCell(3).textContent = data.price ? `$${data.price.toFixed(2)}` : '';
+            row.insertCell(4).textContent = data.quantityperitem || '';
             
-            // Format date if it exists
-            let dateDisplay = '';
-            if (data.dateRegistered) {
-                if (data.dateRegistered.toDate) {
-                    // If it's a Firestore timestamp
-                    const date = data.dateRegistered.toDate();
-                    dateDisplay = date.toLocaleDateString();
-                } else {
-                    // If it's a string date
-                    dateDisplay = data.dateRegistered;
-                }
+            // Handle products requested array
+            let productsDisplay = '';
+            if (data.productrequested && Array.isArray(data.productrequested)) {
+                productsDisplay = data.productrequested.join(', ');
+            } else if (data.productrequested) {
+                productsDisplay = data.productrequested;
             }
-            row.insertCell(3).textContent = dateDisplay;
+            row.insertCell(5).textContent = productsDisplay;
+            
+            // Display arrived status
+            row.insertCell(6).textContent = data.arrived ? 'Yes' : 'No';
             
             // Add action buttons
-            const actionsCell = row.insertCell(4);
+            const actionsCell = row.insertCell(7);
             const editBtn = document.createElement('button');
             editBtn.textContent = 'Edit';
             editBtn.className = 'btn btn-primary btn-sm mr-1';
@@ -407,22 +421,21 @@ async function deleteInventory(id) {
 function editSupplier(id, data) {
     // Set form values for editing
     document.getElementById('supplierId').value = id;
-    document.getElementById('name').value = data.name || '';
-    document.getElementById('information').value = data.information || '';
+    document.getElementById('supplierName').value = data.supplierName || '';
+    document.getElementById('supplierDescription').value = data.description || '';
+    document.getElementById('price').value = data.price || '';
+    document.getElementById('quantityperitem').value = data.quantityperitem || '';
     
-    // Handle date formatting
-    if (data.dateRegistered) {
-        let dateValue = '';
-        if (data.dateRegistered.toDate) {
-            // If it's a Firestore timestamp
-            const date = data.dateRegistered.toDate();
-            dateValue = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-        } else {
-            // If it's a string date
-            dateValue = data.dateRegistered;
-        }
-        document.getElementById('dateSupplied').value = dateValue;
+    // Handle products requested array
+    if (data.productrequested && Array.isArray(data.productrequested)) {
+        document.getElementById('productrequested').value = data.productrequested.join(', ');
+    } else if (data.productrequested) {
+        document.getElementById('productrequested').value = data.productrequested;
+    } else {
+        document.getElementById('productrequested').value = '';
     }
+    
+    document.getElementById('arrived').checked = data.arrived || false;
     
     // Change button text to indicate update
     document.getElementById('submitSupplier').textContent = 'Update Supplier';
@@ -435,7 +448,7 @@ async function deleteSupplier(id) {
     if (confirm('Are you sure you want to delete this supplier?')) {
         try {
             // Get the data that will be deleted for logging
-            const docRef = doc(db, "farmers", id);
+            const docRef = doc(db, "supplier", id);
             const docSnap = await getDoc(docRef);
             const deletedData = docSnap.exists() ? docSnap.data() : null;
             
@@ -443,7 +456,7 @@ async function deleteSupplier(id) {
             await deleteDoc(docRef);
             
             // Log the deletion with our new logging module
-            await logDelete('farmers', id, deletedData);
+            await logDelete('supplier', id, deletedData);
             
             alert('Supplier deleted successfully');
             fetchSupplierData(); // Refresh the table

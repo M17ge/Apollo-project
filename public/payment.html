@@ -23,7 +23,10 @@
             <input type="hidden" id="paymentID" name="paymentID">
             
             <label for="approval_manager">Approval Manager:</label>
-            <input type="text" id="approval_manager" name="approval_manager" required>
+            <select id="approval_manager" name="approval_manager" required>
+                <option value="">Select approval manager</option>
+                <!-- Will be populated by JavaScript -->
+            </select>
             
             <label for="status">Status:</label>
             <select id="status" name="status" required>
@@ -31,11 +34,17 @@
                 <option value="false">Pending</option>
             </select>
             
-            <label for="inventory_id">Inventory ID:</label>
-            <input type="text" id="inventory_id" name="inventory_id" placeholder="Enter inventory ID">
+            <label for="inventory_id">Related Inventory:</label>
+            <select id="inventory_id" name="inventory_id">
+                <option value="">Select inventory (optional)</option>
+                <!-- Will be populated by JavaScript -->
+            </select>
             
-            <label for="order_id">Order ID:</label>
-            <input type="text" id="order_id" name="order_id" placeholder="Enter order ID">
+            <label for="order_id">Related Order:</label>
+            <select id="order_id" name="order_id">
+                <option value="">Select order (optional)</option>
+                <!-- Will be populated by JavaScript -->
+            </select>
             
             <label for="total_amount">Total Amount:</label>
             <input type="number" id="total_amount" name="total_amount" required step="0.01">

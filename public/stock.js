@@ -3,6 +3,13 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebas
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
+// Import database utilities for foreign key management
+import { 
+    initializeDatabase, 
+    validateDocumentReferences, 
+    populateReferenceDropdown, 
+    DISPLAY_FORMATTERS 
+} from './database-utils.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -21,6 +28,9 @@ const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Initialize database utilities
+initializeDatabase(db);
+
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -36,6 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initializeForms() {
+    // Populate inventory dropdown with foreign key relationship
+    populateReferenceDropdown('inventory_id', 'inventory', 'id', DISPLAY_FORMATTERS.inventory);
+
     // Product form submission
     document.getElementById('productForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -47,25 +60,34 @@ function initializeForms() {
         const category = document.getElementById('category').value;
         const price = parseFloat(document.getElementById('price').value);
         const quantity = parseInt(document.getElementById('quantity').value);
-        const inventoryId = document.getElementById('inventory_id').value || null;
+        const inventoryId = document.getElementById('inventory_id').value;
         const arrived = document.getElementById('arrived').value === 'true';
 
+        // Create product data object with foreign key validation
+        const productData = {
+            name,
+            description,
+            category,
+            price,
+            quantity,
+            arrived,
+            created_at: serverTimestamp()
+        };
+        
+        // Add inventory_id if provided (foreign key)
+        if (inventoryId) {
+            productData.inventory_id = inventoryId;
+        }
+
+        // Validate foreign key relationships
+        const validation = await validateDocumentReferences('products', productData);
+        
+        if (!validation.valid) {
+            alert('Validation errors:\n' + validation.errors.join('\n'));
+            return;
+        }
+
         try {
-            // Create product data object
-            const productData = {
-                name,
-                description,
-                category,
-                price,
-                quantity,
-                arrived
-            };
-            
-            // Add inventory_id only if it has a value
-            if (inventoryId) {
-                productData.inventory_id = inventoryId;
-            }
-            
             // Check if we're updating or creating
             if (productId) {
                 // Get old data for logging
@@ -74,22 +96,19 @@ function initializeForms() {
                 const oldData = oldDataSnap.exists() ? oldDataSnap.data() : null;
                 
                 // Update existing product
-                await updateDoc(productRef, productData);
+                await updateDoc(productRef, validation.validatedData);
                 
                 // Log the update
-                await logUpdate('products', productId, productData, oldData);
+                await logUpdate('products', productId, validation.validatedData, oldData);
                 
                 console.log("Product updated with ID: ", productId);
                 alert("Product updated successfully!");
             } else {
-                // Add created_at timestamp for new products
-                productData.created_at = serverTimestamp();
-                
                 // Create a new product document
-                const productDocRef = await addDoc(collection(db, 'products'), productData);
+                const productDocRef = await addDoc(collection(db, 'products'), validation.validatedData);
                 
                 // Log the creation
-                await logCreate('products', productDocRef.id, productData);
+                await logCreate('products', productDocRef.id, validation.validatedData);
                 
                 console.log("Product added with ID: ", productDocRef.id);
                 alert("Product added successfully!");

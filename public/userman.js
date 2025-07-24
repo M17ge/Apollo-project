@@ -44,9 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const longDescription = document.getElementById('longDescription').value;
         const farmSize = document.getElementById('farmSize').value;
         const county = document.getElementById('county').value;
+        const location = document.getElementById('location').value;
+        const approved = document.getElementById('approved').checked;
         const userRole = document.getElementById('userRole').value;
 
-        addUser(email, password, { displayName, phoneNumber, shortDescription, longDescription, farmSize, county, userRole });
+        addUser(email, password, { displayName, phoneNumber, shortDescription, longDescription, farmSize, county, location, approved, userRole });
     });
     // Update user form submission
     document.getElementById('updateUserForm').addEventListener('submit', function (event) {
@@ -59,6 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const newLongDescription = document.getElementById('newLongDescription').value;
         const newFarmSize = document.getElementById('newFarmSize').value;
         const newCounty = document.getElementById('newCounty').value;
+        const newLocation = document.getElementById('newLocation').value;
+        const newApproved = document.getElementById('newApproved').checked;
         const newUserRole = document.getElementById('newUserRole').value;
 
         updateUser(userId, collectionName, {
@@ -68,6 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
             longDescription: newLongDescription,
             farmSize: newFarmSize,
             county: newCounty,
+            location: newLocation,
+            approved: newApproved,
             userRole: newUserRole
         });
     });
@@ -123,8 +129,9 @@ async function addUser(email, password, additionalData) {
             Phone_Number: additionalData.phoneNumber,
             ID_NUMBER: additionalData.shortDescription,
             County: additionalData.county,
+            location: additionalData.location,
             Role: additionalData.userRole,
-            approved: true,
+            approved: additionalData.approved,
             Created_Time: new Date()
         };
         
@@ -209,6 +216,8 @@ async function loadUserForEdit(userId, collectionName) {
             document.getElementById('newLongDescription').value = userData.Description || '';
             document.getElementById('newFarmSize').value = userData.Farm_Size || '';
             document.getElementById('newCounty').value = userData.County || '';
+            document.getElementById('newLocation').value = userData.location || '';
+            document.getElementById('newApproved').checked = userData.approved || false;
             document.getElementById('newUserRole').value = userData.Role || '';
             
             // Scroll to update form and highlight it
@@ -236,6 +245,8 @@ async function updateUser(userId, collectionName, updatedData) {
             Phone_Number: updatedData.phoneNumber,
             ID_NUMBER: updatedData.shortDescription,
             County: updatedData.county,
+            location: updatedData.location,
+            approved: updatedData.approved,
             Role: updatedData.userRole
         };
         
@@ -413,11 +424,17 @@ function addUserToTable(tableBody, userId, userData, collectionName) {
     // Insert county
     row.insertCell(7).textContent = userData.County || '';
     
+    // Insert location
+    row.insertCell(8).textContent = userData.location || '';
+    
+    // Insert approved status
+    row.insertCell(9).textContent = userData.approved ? 'Yes' : 'No';
+    
     // Insert role
-    row.insertCell(8).textContent = userData.Role || '';
+    row.insertCell(10).textContent = userData.Role || '';
     
     // Add edit and delete buttons
-    const actionsCell = row.insertCell(9);
+    const actionsCell = row.insertCell(11);
     const editButton = document.createElement('button');
     editButton.textContent = 'Edit';
     editButton.className = 'edit-button';
