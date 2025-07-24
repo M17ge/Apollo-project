@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trainer Management</title>
+    <title>Training Management</title>
     <script type="module" src="learning.js" defer></script>
     <link rel="stylesheet" href="learning.css">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -12,54 +12,12 @@
 <body>
     <a href="Landing.html" class="back-icon" title="Back to Landing Page">
         <i class="fas fa-arrow-left"></i></a>
-    <h1>Trainer Management Dashboard</h1>
-    <p>Manage certifications and training bookings</p>
+    <h1>Training Management</h1>
+    <p>Manage training bookings</p>
 
-    <!-- Certification Management Section -->
+    <!-- Training Booking Form -->
     <div class="section">
-        <h2>Certification Management</h2>
-        <form id="certificationForm">
-            <input type="hidden" id="certId">
-            
-            <label for="name">Certification Name:</label>
-            <input type="text" id="name" placeholder="Certification Name" required>
-            
-            <label for="duration">Duration:</label>
-            <input type="text" id="duration" placeholder="Duration (e.g., 3 months)" required>
-            
-            <label for="price">Price:</label>
-            <input type="number" id="price" placeholder="Price" required step="0.01">
-            
-            <label for="description">Description:</label>
-            <textarea id="description" placeholder="Certification description..."></textarea>
-            
-            <label for="prerequisites">Prerequisites:</label>
-            <textarea id="prerequisites" placeholder="Any prerequisites for this certification..."></textarea>
-            
-            <button type="submit" id="submitCertification">Add Certification</button>
-        </form>
-        
-        <h3>Available Certifications</h3>
-        <table id="certificationTable">
-            <thead>
-                <tr>
-                    <th>Certification ID</th>
-                    <th>Name</th>
-                    <th>Duration</th>
-                    <th>Price</th>
-                    <th>Description</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Certification data will be populated here -->
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Booking Management Section -->
-    <div class="section">
-        <h2>Training Booking Management</h2>
+        <h2>Training Booking Form</h2>
         <form id="bookingForm">
             <input type="hidden" id="bookingId">
             
@@ -93,77 +51,28 @@
                 <option value="true">Confirmed</option>
             </select>
             
-            <label for="booking_notes">Notes:</label>
-            <textarea id="booking_notes" placeholder="Additional notes about the booking..."></textarea>
-            
             <button type="submit" id="submitBooking">Add Booking</button>
         </form>
         
+        <!-- Training Bookings Table -->
         <h3>Training Bookings</h3>
-        <div class="booking-tables">
-            <div class="table-container">
-                <h4>Confirmed Bookings</h4>
-                <table id="confirmedBookingsTable">
-                    <thead>
-                        <tr>
-                            <th>Booking ID</th>
-                            <th>Certification</th>
-                            <th>Farmer</th>
-                            <th>Trainer</th>
-                            <th>Start Time</th>
-                            <th>Location</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Confirmed booking data will be populated here -->
-                    </tbody>
-                </table>
-            </div>
-            
-            <div class="table-container">
-                <h4>Pending Bookings</h4>
-                <table id="pendingBookingsTable">
-                    <thead>
-                        <tr>
-                            <th>Booking ID</th>
-                            <th>Certification</th>
-                            <th>Farmer</th>
-                            <th>Trainer</th>
-                            <th>Start Time</th>
-                            <th>Location</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Pending booking data will be populated here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Trainer Schedule Section -->
-    <div class="section">
-        <h2>My Training Schedule</h2>
-        <div class="schedule-view">
-            <table id="trainerScheduleTable">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Time</th>
-                        <th>Certification</th>
-                        <th>Farmer</th>
-                        <th>Location</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Trainer schedule will be populated here -->
-                </tbody>
-            </table>
-        </div>
+        <table id="bookingsTable">
+            <thead>
+                <tr>
+                    <th>Booking ID</th>
+                    <th>Certification</th>
+                    <th>Farmer</th>
+                    <th>Trainer</th>
+                    <th>Start Time</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Booking data will be populated here -->
+            </tbody>
+        </table>
     </div>
 </body>
 </html>

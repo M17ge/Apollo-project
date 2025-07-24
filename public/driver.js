@@ -1,8 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, updateDoc, doc, getDoc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, updateDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+// Import logging functions
 import { logUpdate, logActivity, logError } from './logging.js';
+// Import database utilities for foreign key management
 import { 
     initializeDatabase, 
     validateDocumentReferences, 
@@ -30,333 +32,212 @@ const db = getFirestore(app);
 // Initialize database utilities
 initializeDatabase(db);
 
-let currentDriverId = null;
+document.addEventListener('DOMContentLoaded', async () => {
+    // Skip authentication for testing - directly initialize
+    console.log("Initializing driver dashboard...");
+    
+    await fetchDispatches();
+    await fetchOrders();
 
-document.addEventListener('DOMContentLoaded', () => {
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            console.log("Driver logged in:", user);
-            currentDriverId = user.uid;
+    const orderForm = document.getElementById('orderStatusForm');
+    if (orderForm) {
+        orderForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            // Initialize the driver dashboard
-            initializeDriverDashboard();
+            // Get form values
+            const orderId = document.getElementById('orderId').value;
+            const newStatus = document.getElementById('newStatus').value;
             
-            // Set up form submission
-            document.getElementById('orderStatusForm').addEventListener('submit', handleOrderStatusUpdate);
+            // Call the updateOrderStatus function
+            await updateOrderStatus(orderId, newStatus);
             
-        } else {
-            console.log("No user is logged in");
-            window.location.href = "login.html";
-        }
-    });
+            // Reset form
+            e.target.reset();
+        });
+    }
+
+    // Log page access
+    try {
+        await logActivity('driver_page_loaded', 'Driver dashboard accessed', 'test_driver_id');
+        console.log("Apollo logging system activated - Driver Dashboard");
+    } catch (error) {
+        console.error('Logging error:', error);
+    }
 });
 
-async function initializeDriverDashboard() {
+// Fetch and display dispatches
+async function fetchDispatches() {
     try {
-        // Populate order dropdown
-        await populateDriverOrders();
-        
-        // Load driver's assigned dispatches
-        await fetchDriverDispatches();
-        
-        // Load driver's assigned orders
-        await fetchDriverOrders();
-        
-    } catch (error) {
-        console.error("Error initializing driver dashboard:", error);
-        alert("Error loading driver dashboard. Please refresh the page.");
-    }
-}
-
-// Populate the order dropdown with orders assigned to this driver
-async function populateDriverOrders() {
-    try {
-        const orderSelect = document.getElementById('orderSelect');
-        orderSelect.innerHTML = '<option value="">Select an order to update</option>';
-        
-        // Query orders where this driver is assigned
-        const ordersSnapshot = await getDocs(collection(db, "order"));
-        
-        ordersSnapshot.forEach((doc) => {
-            const orderData = doc.data();
-            // Check if this order is assigned to current driver through dispatch
-            if (orderData.dispatch_manager_id === currentDriverId || orderData.assigned_driver === currentDriverId) {
-                const option = document.createElement('option');
-                option.value = doc.id;
-                option.textContent = `Order ${doc.id.substring(0, 8)} - ${orderData.farmer_id ? 'Farmer: ' + orderData.farmer_id.substring(0, 8) : 'No Farmer'}`;
-                orderSelect.appendChild(option);
-            }
-        });
-    } catch (error) {
-        console.error("Error populating driver orders:", error);
-    }
-}
-
-// Fetch all dispatches (not filtered by driver)
-async function fetchDriverDispatches() {
-    try {
-        // Get all dispatches instead of filtering by driver
         const querySnapshot = await getDocs(collection(db, "dispatch"));
+        const tableBody = document.getElementById('dispatchTable');
         
-        const dispatchTableBody = document.getElementById('driverDispatchTable').getElementsByTagName('tbody')[0];
-        dispatchTableBody.innerHTML = '';
+        if (!tableBody) {
+            console.error('Dispatch table not found');
+            return;
+        }
+
+        const tbody = tableBody.getElementsByTagName('tbody')[0];
+        if (!tbody) {
+            console.error('Dispatch table tbody not found');
+            return;
+        }
         
-        querySnapshot.forEach((doc) => {
-            const dispatch = doc.data();
+        // Clear existing data
+        tbody.innerHTML = '';
+
+        for (const docSnap of querySnapshot.docs) {
+            const dispatch = docSnap.data();
             const row = document.createElement('tr');
             
-            // Format dispatch time
-            let dispatchTimeDisplay = '';
-            if (dispatch.disTim && dispatch.disTim.seconds) {
-                dispatchTimeDisplay = new Date(dispatch.disTim.seconds * 1000).toLocaleString();
-            } else if (dispatch.disTim) {
-                dispatchTimeDisplay = new Date(dispatch.disTim).toLocaleString();
+            // Format dispatch_date timestamp if it exists
+            let dispatchDateDisplay = '';
+            if (dispatch.dispatch_date && dispatch.dispatch_date.toDate) {
+                dispatchDateDisplay = dispatch.dispatch_date.toDate().toLocaleDateString();
+            } else if (dispatch.dispatch_date) {
+                dispatchDateDisplay = new Date(dispatch.dispatch_date).toLocaleDateString();
             }
             
+            // Get display names for foreign keys
+            let driverName = dispatch.driver_id || '';
+            let orderDetails = dispatch.order_id || '';
+            
+            try {
+                if (DISPLAY_FORMATTERS && DISPLAY_FORMATTERS.driver_id) {
+                    driverName = await DISPLAY_FORMATTERS.driver_id(dispatch.driver_id);
+                }
+                if (DISPLAY_FORMATTERS && DISPLAY_FORMATTERS.order_id) {
+                    orderDetails = await DISPLAY_FORMATTERS.order_id(dispatch.order_id);
+                }
+            } catch (error) {
+                console.error('Error formatting display names:', error);
+            }
+            
+            // Create row HTML
             row.innerHTML = `
-                <td>${doc.id.substring(0, 8)}</td>
-                <td>${dispatchTimeDisplay}</td>
-                <td>${dispatch.location || ''}</td>
-                <td>${dispatch.vehicle || ''}</td>
-                <td>${dispatch.order_id ? dispatch.order_id.substring(0, 8) : 'N/A'}</td>
-                <td>${dispatch.driver_id ? dispatch.driver_id.substring(0, 8) : 'N/A'}</td>
-                <td>
-                    <span class="status-badge ${dispatch.dispatched ? 'delivered' : 'pending'}">
-                        ${dispatch.dispatched ? 'Dispatched' : 'Pending'}
-                    </span>
-                </td>
-                <td>
-                    <button onclick="markDispatchDelivered('${doc.id}')" class="btn-delivered" ${dispatch.dispatched ? 'disabled' : ''}>
-                        <i class="fas fa-check"></i> Mark Delivered
-                    </button>
-                </td>
+                <td>${docSnap.id}</td>
+                <td>${driverName}</td>
+                <td>${orderDetails}</td>
+                <td>${dispatchDateDisplay}</td>
+                <td><span class="status ${dispatch.dispatched ? 'dispatched' : 'pending'}">${dispatch.dispatched ? 'Dispatched' : 'Pending'}</span></td>
             `;
             
-            dispatchTableBody.appendChild(row);
-        });
+            tbody.appendChild(row);
+        }
     } catch (error) {
-        console.error("Error fetching driver dispatches:", error);
-        alert("Error loading dispatches. Please try again.");
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error fetching dispatches: ", error.code || '', msg);
+        alert(`An error occurred while fetching dispatches: ${msg}`);
     }
 }
 
-// Fetch all orders (not filtered by driver)
-async function fetchDriverOrders() {
+// Fetch and display orders
+async function fetchOrders() {
     try {
-        const ordersSnapshot = await getDocs(collection(db, "order"));
-        const ordersTableBody = document.getElementById('driverOrdersTable').getElementsByTagName('tbody')[0];
-        ordersTableBody.innerHTML = '';
+        const querySnapshot = await getDocs(collection(db, "order"));
+        const tableBody = document.getElementById('ordersTable');
         
-        ordersSnapshot.forEach((doc) => {
-            const order = doc.data();
-            
-            // Show all orders regardless of driver assignment
+        if (!tableBody) {
+            console.error('Orders table not found');
+            return;
+        }
+
+        const tbody = tableBody.getElementsByTagName('tbody')[0];
+        if (!tbody) {
+            console.error('Orders table tbody not found');
+            return;
+        }
+        
+        // Clear existing data
+        tbody.innerHTML = '';
+
+        for (const docSnap of querySnapshot.docs) {
+            const order = docSnap.data();
             const row = document.createElement('tr');
             
-            // Format ETA
-            let etaDisplay = '';
-            if (order.ETA && order.ETA.toDate) {
-                etaDisplay = order.ETA.toDate().toLocaleString();
-            } else if (order.ETA) {
-                etaDisplay = new Date(order.ETA).toLocaleString();
+            // Format order_date timestamp if it exists
+            let orderDateDisplay = '';
+            if (order.order_date && order.order_date.toDate) {
+                orderDateDisplay = order.order_date.toDate().toLocaleDateString();
+            } else if (order.order_date) {
+                orderDateDisplay = new Date(order.order_date).toLocaleDateString();
             }
             
-            // Format products array
-            let productsDisplay = '';
-            if (order.products && Array.isArray(order.products)) {
-                productsDisplay = order.products.join(', ');
-            } else if (order.products) {
-                productsDisplay = order.products;
+            // Format total_amount
+            const totalAmountDisplay = typeof order.total_amount === 'number' ? 
+                order.total_amount.toLocaleString() : order.total_amount || '';
+            
+            // Get display names for foreign keys
+            let farmerName = order.farmer_id || '';
+            
+            try {
+                if (DISPLAY_FORMATTERS && DISPLAY_FORMATTERS.farmer_id) {
+                    farmerName = await DISPLAY_FORMATTERS.farmer_id(order.farmer_id);
+                }
+            } catch (error) {
+                console.error('Error formatting display names:', error);
             }
             
+            // Create row HTML
             row.innerHTML = `
-                <td>${doc.id.substring(0, 8)}</td>
-                <td>${order.farmer_id ? order.farmer_id.substring(0, 8) : 'N/A'}</td>
-                <td>${productsDisplay}</td>
-                <td>${order.quantity || 'N/A'}</td>
-                <td>${order.delivery_location || order.location || 'N/A'}</td>
-                <td>${order.dispatch_manager_id ? order.dispatch_manager_id.substring(0, 8) : 'N/A'}</td>
+                <td>${docSnap.id}</td>
+                <td>${farmerName}</td>
+                <td>${orderDateDisplay}</td>
+                <td>${totalAmountDisplay}</td>
+                <td><span class="status ${order.status || 'pending'}">${order.status || 'Pending'}</span></td>
                 <td>
-                    <span class="status-badge ${order.order_status || 'pending'}">
-                        ${order.order_status || 'pending'}
-                    </span>
-                </td>
-                <td>${etaDisplay}</td>
-                <td>
-                    <button onclick="quickUpdateStatus('${doc.id}', 'delivered')" class="btn-delivered">
-                        <i class="fas fa-check"></i> Delivered
-                    </button>
-                    <button onclick="quickUpdateStatus('${doc.id}', 'failed')" class="btn-failed">
-                        <i class="fas fa-times"></i> Failed
-                    </button>
+                    <button onclick="updateStatus('${docSnap.id}', 'processing')">Mark Processing</button>
+                    <button onclick="updateStatus('${docSnap.id}', 'completed')">Mark Completed</button>
                 </td>
             `;
             
-            ordersTableBody.appendChild(row);
-        });
+            tbody.appendChild(row);
+        }
     } catch (error) {
-        console.error("Error fetching driver orders:", error);
-        alert("Error loading orders. Please try again.");
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error fetching orders: ", error.code || '', msg);
+        alert(`An error occurred while fetching orders: ${msg}`);
     }
 }
 
-// Handle order status update form submission
-async function handleOrderStatusUpdate(e) {
-    e.preventDefault();
-    
-    const orderId = document.getElementById('orderSelect').value;
-    const deliveryStatus = document.getElementById('deliveryStatus').value;
-    const deliveryNotes = document.getElementById('deliveryNotes').value;
-    const deliveryTime = document.getElementById('deliveryTime').value;
-    
-    if (!orderId) {
-        alert('Please select an order to update');
-        return;
-    }
-    
+// Update order status
+async function updateOrderStatus(orderId, newStatus) {
     try {
         const orderRef = doc(db, "order", orderId);
-        const orderSnap = await getDoc(orderRef);
-        const oldData = orderSnap.exists() ? orderSnap.data() : null;
+        const docSnap = await getDoc(orderRef);
+        const oldData = docSnap.exists() ? docSnap.data() : null;
         
         const updateData = {
-            order_status: deliveryStatus,
-            updated_by_driver: currentDriverId,
-            last_updated: serverTimestamp()
+            status: newStatus,
+            updated_at: serverTimestamp()
         };
         
-        if (deliveryNotes) {
-            updateData.delivery_notes = deliveryNotes;
-        }
-        
-        if (deliveryTime) {
-            updateData.delivery_time = new Date(deliveryTime);
-        }
-        
-        // Mark as delivered if status is delivered
-        if (deliveryStatus === 'delivered') {
-            updateData.delivered = true;
-            updateData.delivery_completed_at = serverTimestamp();
-        }
-        
+        // Update the order
         await updateDoc(orderRef, updateData);
         
         // Log the update
         await logUpdate('order', orderId, updateData, oldData);
         
-        alert(`Order status updated to: ${deliveryStatus}`);
-        
-        // Reset form
-        document.getElementById('orderStatusForm').reset();
-        
-        // Refresh tables
-        await fetchDriverOrders();
-        
+        alert("Order status updated successfully!");
+        await fetchOrders(); // Refresh the orders table
     } catch (error) {
-        console.error("Error updating order status:", error);
-        await logError('order', "Failed to update order status", {
-            orderId: orderId,
-            error: error.message
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error updating order status: ", error.code || '', msg);
+        
+        // Log the error
+        await logError('order', "Failed to update order status", { 
+            orderId, 
+            newStatus,
+            error: msg
         });
-        alert("Error updating order status. Please try again.");
+        
+        alert(`An error occurred while updating order status: ${msg}`);
     }
 }
 
-// Quick update order status
-async function quickUpdateStatus(orderId, status) {
-    try {
-        const orderRef = doc(db, "order", orderId);
-        const orderSnap = await getDoc(orderRef);
-        const oldData = orderSnap.exists() ? orderSnap.data() : null;
-        
-        const updateData = {
-            order_status: status,
-            updated_by_driver: currentDriverId,
-            last_updated: serverTimestamp()
-        };
-        
-        if (status === 'delivered') {
-            updateData.delivered = true;
-            updateData.delivery_completed_at = serverTimestamp();
-        }
-        
-        await updateDoc(orderRef, updateData);
-        
-        // Log the update
-        await logUpdate('order', orderId, updateData, oldData);
-        
-        alert(`Order marked as ${status}`);
-        
-        // Refresh tables
-        await fetchDriverOrders();
-        
-    } catch (error) {
-        console.error(`Error marking order as ${status}:`, error);
-        alert(`Error updating order status. Please try again.`);
-    }
+// Update status function for button clicks
+async function updateStatus(orderId, status) {
+    await updateOrderStatus(orderId, status);
 }
 
-// Mark dispatch as delivered
-async function markDispatchDelivered(dispatchId) {
-    try {
-        const dispatchRef = doc(db, "dispatch", dispatchId);
-        const dispatchSnap = await getDoc(dispatchRef);
-        const oldData = dispatchSnap.exists() ? dispatchSnap.data() : null;
-        
-        const updateData = {
-            dispatched: true,
-            delivery_completed_at: serverTimestamp(),
-            completed_by_driver: currentDriverId
-        };
-        
-        await updateDoc(dispatchRef, updateData);
-        
-        // Log the update
-        await logUpdate('dispatch', dispatchId, updateData, oldData);
-        
-        alert("Dispatch marked as delivered!");
-        
-        // Refresh dispatch table
-        await fetchDriverDispatches();
-        
-    } catch (error) {
-        console.error("Error marking dispatch as delivered:", error);
-        alert("Error updating dispatch status. Please try again.");
-    }
-}
-
-// Quick action functions
-async function markAllInTransit() {
-    if (confirm('Mark all your assigned orders as "In Transit"?')) {
-        try {
-            // This would require querying and updating multiple orders
-            alert('Feature coming soon - Mark all as in transit');
-        } catch (error) {
-            console.error("Error marking all as in transit:", error);
-        }
-    }
-}
-
-function showMyRoute() {
-    alert('Route mapping feature coming soon!');
-}
-
-function reportIssue() {
-    const issue = prompt('Describe the issue you encountered:');
-    if (issue) {
-        // Log as an error/issue
-        logActivity('driver', 'issue_reported', {
-            driver_id: currentDriverId,
-            issue_description: issue,
-            timestamp: new Date()
-        });
-        alert('Issue reported successfully. Thank you!');
-    }
-}
-
-// Make functions available globally
-window.markDispatchDelivered = markDispatchDelivered;
-window.quickUpdateStatus = quickUpdateStatus;
-window.markAllInTransit = markAllInTransit;
-window.showMyRoute = showMyRoute;
-window.reportIssue = reportIssue;
+// Make functions available globally for onclick handlers
+window.updateStatus = updateStatus;
