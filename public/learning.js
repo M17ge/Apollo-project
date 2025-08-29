@@ -69,7 +69,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Log page access
     try {
-        await logActivity('learning_page_loaded', 'Learning/Training page accessed', 'test_trainer_id');
+        await logActivity('page_loaded', 'learning', 'page_access', {
+            page: 'Learning/Training',
+            action: 'loaded'
+        });
         console.log("Apollo logging system activated");
     } catch (error) {
         console.error('Logging error:', error);
@@ -308,15 +311,24 @@ window.deleteBooking = deleteBooking;
 // Initialize foreign key dropdowns
 async function initializeForeignKeyDropdowns() {
     try {
-        // Populate certification dropdown
-        await populateReferenceDropdown('certification_id', 'certification', 'name');
+        console.log('Initializing foreign key dropdowns for learning/training page...');
         
-        // Populate farmer dropdown
-        await populateReferenceDropdown('farmer_id', 'farmer', 'name');
+        // Populate certification dropdown with custom formatter
+        await populateReferenceDropdown('certification_id', 'certification', (data, id) => {
+            return `${data.name || 'Unknown Certification'} - ${data.description || 'No Description'}`;
+        });
+        
+        // Populate farmer dropdown with custom formatter
+        await populateReferenceDropdown('farmer_id', 'farmer', (data, id) => {
+            return `${data.name || data.F_Name || 'Unknown Farmer'} - ${data.location || data.County || 'Unknown Location'}`;
+        });
         
         // Populate trainer dropdown with users who have trainer role
-        await populateReferenceDropdown('trainer_id', 'users', 'name');
+        await populateReferenceDropdown('trainer_id', 'users', (data, id) => {
+            return `${data.F_Name || data.name || data.email || 'Unknown'} ${data.Role ? `(${data.Role})` : ''}`;
+        });
         
+        console.log('Foreign key dropdowns initialized successfully for learning/training page');
     } catch (error) {
         console.error('Error initializing foreign key dropdowns:', error);
     }

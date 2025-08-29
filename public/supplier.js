@@ -251,10 +251,14 @@ window.respondToRequest = respondToRequest;
 // Initialize foreign key dropdowns
 async function initializeForeignKeyDropdowns() {
     try {
-        // Populate inventory dropdown
-        await populateReferenceDropdown('inventory_id', 'inventory', 'name');
+        console.log('Initializing supplier page dropdowns...');
+        
+        // Populate inventory dropdown with improved formatter
+        await populateReferenceDropdown('inventory_id', 'inventory', 'id', DISPLAY_FORMATTERS.inventory);
+        console.log('Inventory dropdown populated');
         
     } catch (error) {
         console.error('Error initializing foreign key dropdowns:', error);
+        alert('Error loading dropdown data. Please refresh the page.');
     }
 }

@@ -61,8 +61,13 @@ export async function findReferencingDocuments(collectionName, fieldName, refere
 // Populate dropdown with referenced data
 export async function populateReferenceDropdown(dropdownId, collectionName, valueField = 'id', textField = 'name') {
     try {
+        console.log(`Populating dropdown ${dropdownId} with data from ${collectionName} collection`);
+        
         const dropdown = document.getElementById(dropdownId);
-        if (!dropdown) return;
+        if (!dropdown) {
+            console.error(`Dropdown with ID ${dropdownId} not found`);
+            return;
+        }
         
         // Clear existing options except the first (placeholder)
         while (dropdown.options.length > 1) {
@@ -70,20 +75,37 @@ export async function populateReferenceDropdown(dropdownId, collectionName, valu
         }
         
         const querySnapshot = await getDocs(collection(db, collectionName));
+        console.log(`Found ${querySnapshot.size} documents in ${collectionName} collection`);
+        
+        // No documents found message
+        if (querySnapshot.empty) {
+            const option = document.createElement('option');
+            option.value = "";
+            option.textContent = `No ${collectionName} records found`;
+            dropdown.appendChild(option);
+            return;
+        }
         
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             const option = document.createElement('option');
             option.value = valueField === 'id' ? doc.id : data[valueField];
             
-            // Build display text
+            // Build display text with fallbacks for common fields
             let displayText = '';
             if (textField === 'id') {
-                displayText = doc.id;
+                displayText = doc.id.substring(0, 8) + "..."; // Show shortened ID
             } else if (typeof textField === 'function') {
+                // Use custom formatter
                 displayText = textField(data, doc.id);
             } else {
-                displayText = data[textField] || doc.id;
+                // Try multiple common fields if the specified one doesn't exist
+                displayText = data[textField] || 
+                             data.name || 
+                             data.F_Name || 
+                             data.title || 
+                             data.displayName || 
+                             `${collectionName} (${doc.id.substring(0, 6)}...)`;
             }
             
             option.textContent = displayText;
@@ -220,10 +242,63 @@ export async function checkForOrphanedReferences(collectionName, documentId) {
 
 // Generate reference-aware display names for dropdowns
 export const DISPLAY_FORMATTERS = {
-    users: (data, id) => `${data.F_Name || data.displayName || 'Unknown'} (${data.Role || 'User'})`,
-    farmers: (data, id) => `${data.F_Name || 'Unknown Farmer'} - ${data.County || 'Unknown County'}`,
-    supplier: (data, id) => `${data.supplierName || 'Unknown Supplier'} - $${data.price || 'N/A'}`,
-    inventory: (data, id) => `${data.Description || 'Unknown Item'} - ${data.Total_Price ? '$' + data.Total_Price : 'No Price'}`,
-    order: (data, id) => `Order ${id.substring(0, 8)} - ${data.order_status || 'Unknown Status'}`,
-    products: (data, id) => `${data.name || 'Unknown Product'} - ${data.category || 'No Category'}`
+    // User formatters - handles both "users" and "user" collection
+    users: (data, id) => {
+        const name = data.F_Name || data.name || data.displayName || data.email || 'Unknown';
+        const role = data.Role || data.role || 'User';
+        return `${name} (${role})`;
+    },
+    user: (data, id) => {
+        const name = data.F_Name || data.name || data.displayName || data.email || 'Unknown';
+        const role = data.Role || data.role || 'User';
+        return `${name} (${role})`;
+    },
+    
+    // Farmer formatters
+    farmer: (data, id) => {
+        const name = data.F_Name || data.name || data.title || 'Unknown Farmer';
+        const location = data.County || data.county || data.location || data.area || 'Unknown Location';
+        return `${name} - ${location}`;
+    },
+    farmers: (data, id) => {
+        const name = data.F_Name || data.name || data.title || 'Unknown Farmer';
+        const location = data.County || data.county || data.location || data.area || 'Unknown Location';
+        return `${name} - ${location}`;
+    },
+    
+    // Supplier formatters
+    supplier: (data, id) => {
+        const name = data.supplierName || data.name || data.title || 'Unknown Supplier';
+        const detail = data.price ? `$${data.price}` : data.location || data.contact || 'N/A';
+        return `${name} - ${detail}`;
+    },
+    
+    // Inventory formatters
+    inventory: (data, id) => {
+        const name = data.Description || data.description || data.name || 'Unknown Item'; 
+        const price = data.Total_Price || data.total_price || data.price;
+        return `${name} - ${price ? '$' + price : 'No Price'}`;
+    },
+    
+    // Order formatters
+    order: (data, id) => {
+        const shortId = id.substring(0, 6);
+        const status = data.order_status || data.status || 'Unknown Status';
+        const total = data.total_amount ? `$${data.total_amount}` : '';
+        return `Order ${shortId}... - ${status} ${total}`;
+    },
+    
+    // Product formatters
+    products: (data, id) => {
+        const name = data.name || data.title || data.Description || 'Unknown Product';
+        const detail = data.category || data.type || data.description || 'No Category';
+        return `${name} - ${detail}`;
+    },
+    
+    // Certification formatters
+    certification: (data, id) => {
+        const name = data.name || data.title || 'Unknown Certification';
+        const detail = data.description || data.level || data.type || '';
+        return `${name}${detail ? ' - ' + detail : ''}`;
+    }
 };

@@ -14,19 +14,10 @@ const firebaseConfig = {
   measurementId: "G-FCKNKS0L5Z"
 };
 
-// Initialize Firebase or use existing instance
-let app, auth, db;
-try {
-    // Try to get the existing instance
-    app = firebase.app();
-    auth = getAuth();
-    db = getFirestore();
-} catch (e) {
-    // If no instance exists, initialize a new one
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
-}
+// Initialize Firebase (simplified to avoid errors)
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 /**
  * Core logging function - logs any event to the reports collection
@@ -55,7 +46,7 @@ export async function logActivity(action, collectionName, documentId, data, oldD
         };
 
         const docRef = await addDoc(collection(db, "reports"), logData);
-        console.log(`Logged: ${action} on ${collection}/${documentId}`);
+        console.log(`Logged: ${action} on ${collectionName}/${documentId}`);
         return docRef.id;
     } catch (error) {
         console.error("Logging error:", error);

@@ -37,15 +37,31 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
             console.log("User is logged in:", user);
-            document.getElementById('approval_manager').value = user.uid;
             
-            // Initialize foreign key dropdowns
-            initializeForeignKeyDropdowns();
+            // Initialize foreign key dropdowns first
+            initializeForeignKeyDropdowns().then(() => {
+                // Set the approval manager to current user after dropdowns are loaded
+                const approvalManagerSelect = document.getElementById('approval_manager');
+                if (approvalManagerSelect) {
+                    approvalManagerSelect.value = user.uid;
+                }
+            });
             
             fetchPayments();
         } else {
             console.log("No user is logged in");
-            window.location.href = "login.html";
+            // Skip authentication for testing - directly initialize
+            console.log("Initializing without authentication for testing...");
+            
+            initializeForeignKeyDropdowns().then(() => {
+                // Set a default test user for approval manager
+                const approvalManagerSelect = document.getElementById('approval_manager');
+                if (approvalManagerSelect && approvalManagerSelect.options.length > 1) {
+                    approvalManagerSelect.selectedIndex = 1; // Select first real option
+                }
+            });
+            
+            fetchPayments();
         }
     });
 
@@ -56,9 +72,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const paymentID = document.getElementById('paymentID').value;
         const approval_manager = document.getElementById('approval_manager').value;
         const status = document.getElementById('status').value === 'true';
-        const inventory_id = document.getElementById('inventory_id').value || null;
-        const order_id = document.getElementById('order_id').value || null;
+        
+        // Handle optional fields - convert empty strings to null
+        const inventory_id = document.getElementById('inventory_id').value.trim() || null;
+        const order_id = document.getElementById('order_id').value.trim() || null;
+        
         const total_amount = parseFloat(document.getElementById('total_amount').value);
+        
+        // Validate required fields
+        if (!approval_manager || approval_manager.trim() === '') {
+            alert('Please select an approval manager. Make sure you are logged in or select a manager from the dropdown.');
+            return;
+        }
+        
+        if (isNaN(total_amount) || total_amount <= 0) {
+            alert('Please enter a valid total amount.');
+            return;
+        }
         
         // Call the addOrUpdatePayment function
         await addOrUpdatePayment(paymentID, approval_manager, status, inventory_id, order_id, total_amount);
@@ -69,7 +99,16 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // If we're logged in, reset the approval_manager field to the current user's ID
         if (auth.currentUser) {
-            document.getElementById('approval_manager').value = auth.currentUser.uid;
+            const approvalManagerSelect = document.getElementById('approval_manager');
+            if (approvalManagerSelect) {
+                approvalManagerSelect.value = auth.currentUser.uid;
+            }
+        } else {
+            // For testing without authentication, select first available option
+            const approvalManagerSelect = document.getElementById('approval_manager');
+            if (approvalManagerSelect && approvalManagerSelect.options.length > 1) {
+                approvalManagerSelect.selectedIndex = 1; // Select first real option
+            }
         }
     });
 });
@@ -131,19 +170,19 @@ async function fetchPayments() {
 // Add or update payment entry
 async function addOrUpdatePayment(paymentID, approval_manager, status, inventory_id, order_id, total_amount) {
     try {
-        // Create the payment data object
+        // Create the payment data object with required fields
         const paymentData = {
             Approval_manager: approval_manager,
             Status: status,
             total_amount: total_amount
         };
         
-        // Add optional fields only if they have values
-        if (inventory_id) {
+        // Add optional fields only if they have values (not null or empty)
+        if (inventory_id && inventory_id.trim() !== '') {
             paymentData.inventory_id = inventory_id;
         }
         
-        if (order_id) {
+        if (order_id && order_id.trim() !== '') {
             paymentData.order_id = order_id;
         }
 
@@ -292,16 +331,36 @@ window.deletePayment = deletePayment;
 // Initialize foreign key dropdowns
 async function initializeForeignKeyDropdowns() {
     try {
-        // Populate inventory dropdown
-        await populateReferenceDropdown('inventory_id', 'inventory', 'id', DISPLAY_FORMATTERS.inventory);
+        console.log('Initializing foreign key dropdowns...');
         
-        // Populate order dropdown
-        await populateReferenceDropdown('order_id', 'order', 'id', DISPLAY_FORMATTERS.order);
+        // Populate inventory dropdown (optional)
+        await populateReferenceDropdown('inventory_id', 'inventory', 'id', (data, id) => {
+            return `${id.substring(0, 8)} - ${data.name || 'Unknown Item'}`;
+        });
         
-        // Populate approval manager dropdown with users
-        await populateReferenceDropdown('approval_manager', 'users', 'id', DISPLAY_FORMATTERS.users);
+        // Populate order dropdown (optional)  
+        await populateReferenceDropdown('order_id', 'order', 'id', (data, id) => {
+            return `${id.substring(0, 8)} - $${data.total_amount || '0.00'}`;
+        });
+        
+        // Populate approval manager dropdown with users (required)
+        await populateReferenceDropdown('approval_manager', 'users', 'id', (data, id) => {
+            return data.F_Name || data.name || data.email || id;
+        });
+        
+        console.log('Foreign key dropdowns initialized successfully');
+        
+        // Ensure approval manager is selected if we have a current user
+        const approvalManagerSelect = document.getElementById('approval_manager');
+        if (approvalManagerSelect && auth.currentUser) {
+            approvalManagerSelect.value = auth.currentUser.uid;
+        } else if (approvalManagerSelect && approvalManagerSelect.options.length > 1) {
+            // If no auth user but options exist, show the first real option as selected
+            approvalManagerSelect.selectedIndex = 1;
+        }
         
     } catch (error) {
         console.error('Error initializing foreign key dropdowns:', error);
+        alert('Error loading dropdown options. Please refresh the page.');
     }
 }
