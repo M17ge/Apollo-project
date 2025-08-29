@@ -14,19 +14,13 @@ const firebaseConfig = {
   measurementId: "G-FCKNKS0L5Z"
 };
 
-// Initialize Firebase (simplified to avoid errors)
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 /**
  * Core logging function - logs any event to the reports collection
- * @param {string} action - Action performed (create, update, delete, login, etc)
- * @param {string} collectionName - The collection being affected
- * @param {string} documentId - The ID of the document being affected
- * @param {Object} data - The data involved in the operation
- * @param {Object} oldData - Previous data (for updates)
- * @returns {Promise<string>} - Returns the ID of the created log entry
  */
 export async function logActivity(action, collectionName, documentId, data, oldData = null) {
     try {
@@ -54,8 +48,6 @@ export async function logActivity(action, collectionName, documentId, data, oldD
     }
 }
 
-// Convenience methods for common operations
-
 /**
  * Log document creation
  */
@@ -78,7 +70,7 @@ export async function logDelete(collectionName, documentId, deletedData) {
 }
 
 /**
- * Log authentication events (login, logout, register)
+ * Log authentication events
  */
 export async function logAuth(action, userId, details) {
     return logActivity(action, 'auth', userId, details);

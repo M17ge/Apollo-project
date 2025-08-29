@@ -1,16 +1,16 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
-// Import logging functions
-import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
-// Import database utilities for foreign key management
 import { 
-    initializeDatabase, 
-    validateDocumentReferences, 
-    populateReferenceDropdown, 
-    DISPLAY_FORMATTERS 
-} from './database-utils.js';
+    getFirestore, 
+    collection, 
+    addDoc, 
+    getDocs, 
+    updateDoc, 
+    deleteDoc, 
+    doc, 
+    getDoc, 
+    serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { logActivity, logCreate, logUpdate, logDelete, logError } from './logging.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -25,19 +25,14 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Initialize database utilities
-initializeDatabase(db);
-
 document.addEventListener('DOMContentLoaded', async () => {
-    // Skip authentication for testing - directly initialize
     console.log("Initializing training manager...");
+    logActivity('learning', 'Training manager initialized');
     
-    // Initialize foreign key dropdowns
-    await initializeForeignKeyDropdowns();
+    // Load dropdown data
+    await loadDropdownData();
     
     await fetchBookings();
 
@@ -69,11 +64,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Log page access
     try {
-        await logActivity('page_loaded', 'learning', 'page_access', {
-            page: 'Learning/Training',
-            action: 'loaded'
-        });
-        console.log("Apollo logging system activated");
+        logActivity('learning', 'Learning page loaded');
+        console.log("Learning system activated");
     } catch (error) {
         console.error('Logging error:', error);
     }
@@ -111,23 +103,38 @@ async function fetchBookings() {
                 startTimeDisplay = new Date(booking.expected_start_time).toLocaleString();
             }
             
-            // Get display names for foreign keys
-            let certificationName = booking.certification_id || '';
-            let farmerName = booking.farmer_id || '';
-            let trainerName = booking.trainer_id || '';
+            // Get display names for foreign keys - simple approach
+            let certificationName = booking.certification_id || 'N/A';
+            let farmerName = booking.farmer_id || 'N/A';
+            let trainerName = booking.trainer_id || 'N/A';
             
+            // Try to get friendly names if possible
             try {
-                if (DISPLAY_FORMATTERS && DISPLAY_FORMATTERS.certification_id) {
-                    certificationName = await DISPLAY_FORMATTERS.certification_id(booking.certification_id);
+                if (booking.certification_id) {
+                    const certDoc = await getDoc(doc(db, "certification", booking.certification_id));
+                    if (certDoc.exists()) {
+                        const certData = certDoc.data();
+                        certificationName = certData.name || certData.certification_name || booking.certification_id;
+                    }
                 }
-                if (DISPLAY_FORMATTERS && DISPLAY_FORMATTERS.farmer_id) {
-                    farmerName = await DISPLAY_FORMATTERS.farmer_id(booking.farmer_id);
+                
+                if (booking.farmer_id) {
+                    const farmerDoc = await getDoc(doc(db, "farmer", booking.farmer_id));
+                    if (farmerDoc.exists()) {
+                        const farmerData = farmerDoc.data();
+                        farmerName = farmerData.name || farmerData.F_Name || booking.farmer_id;
+                    }
                 }
-                if (DISPLAY_FORMATTERS && DISPLAY_FORMATTERS.trainer_id) {
-                    trainerName = await DISPLAY_FORMATTERS.trainer_id(booking.trainer_id);
+                
+                if (booking.trainer_id) {
+                    const trainerDoc = await getDoc(doc(db, "users", booking.trainer_id));
+                    if (trainerDoc.exists()) {
+                        const trainerData = trainerDoc.data();
+                        trainerName = trainerData.F_Name || trainerData.name || trainerData.email || booking.trainer_id;
+                    }
                 }
             } catch (error) {
-                console.error('Error formatting display names:', error);
+                console.error('Error loading reference data:', error);
             }
             
             // Create row HTML
@@ -167,11 +174,17 @@ async function addOrUpdateBooking(bookingID, certification_id, farmer_id, traine
             booked: booked
         };
 
-        // Validate foreign key relationships
-        const validation = await validateDocumentReferences('bookings', bookingData);
-        
-        if (!validation.valid) {
-            alert('Validation errors:\n' + validation.errors.join('\n'));
+        // Basic validation
+        if (!certification_id) {
+            alert('Please select a certification');
+            return;
+        }
+        if (!farmer_id) {
+            alert('Please select a farmer');
+            return;
+        }
+        if (!trainer_id) {
+            alert('Please select a trainer');
             return;
         }
         
@@ -182,25 +195,25 @@ async function addOrUpdateBooking(bookingID, certification_id, farmer_id, traine
             const docSnap = await getDoc(bookingRef);
             const oldData = docSnap.exists() ? docSnap.data() : null;
             
-            // Update existing booking with validated data
-            validation.validatedData.updated_at = serverTimestamp();
-            await updateDoc(bookingRef, validation.validatedData);
+            // Update existing booking
+            bookingData.updated_at = serverTimestamp();
+            await updateDoc(bookingRef, bookingData);
             docRef = bookingRef;
             
-            // Log the update with our logging module
-            await logUpdate('bookings', bookingID, validation.validatedData, oldData);
+            // Log the update
+            logUpdate('learning', 'Updated booking', { bookingID, data: bookingData });
             
             alert("Booking updated successfully!");
         } else {
             // Add timestamps for new bookings
-            validation.validatedData.created_at = serverTimestamp();
-            validation.validatedData.updated_at = serverTimestamp();
+            bookingData.created_at = serverTimestamp();
+            bookingData.updated_at = serverTimestamp();
             
-            // Create new booking with validated data
-            docRef = await addDoc(collection(db, "bookings"), validation.validatedData);
+            // Create new booking
+            docRef = await addDoc(collection(db, "bookings"), bookingData);
             
-            // Log the creation with our logging module
-            await logCreate('bookings', docRef.id, validation.validatedData);
+            // Log the creation
+            logCreate('learning', 'Created booking', { bookingID: docRef.id, data: bookingData });
             
             alert("Booking added successfully!");
         }
@@ -209,8 +222,8 @@ async function addOrUpdateBooking(bookingID, certification_id, farmer_id, traine
         const msg = error && error.message ? error.message : String(error);
         console.error("Error adding/updating booking: ", error.code || '', msg);
         
-        // Log the error with our logging module
-        await logError('booking', "Failed to save booking", { 
+        // Log the error
+        logError('learning', 'Failed to save booking', { 
             bookingID, 
             error: msg,
             attempted_action: bookingID ? 'update' : 'create'
@@ -232,8 +245,8 @@ async function deleteBooking(bookingID) {
             // Delete the document
             await deleteDoc(bookingRef);
             
-            // Log the deletion with our logging module
-            await logDelete('bookings', bookingID, deletedData);
+            // Log the deletion
+            logDelete('learning', 'Deleted booking', { bookingID, deletedData });
             
             alert("Booking deleted successfully!");
             await fetchBookings();
@@ -241,8 +254,8 @@ async function deleteBooking(bookingID) {
             const msg = error && error.message ? error.message : String(error);
             console.error("Error deleting booking: ", error.code || '', msg);
             
-            // Log the error with our logging module
-            await logError('booking', "Failed to delete booking", { 
+            // Log the error
+            logError('learning', 'Failed to delete booking', { 
                 bookingID, 
                 error: msg
             });
@@ -308,28 +321,53 @@ async function editBooking(bookingID) {
 window.editBooking = editBooking;
 window.deleteBooking = deleteBooking;
 
-// Initialize foreign key dropdowns
-async function initializeForeignKeyDropdowns() {
+// Load dropdown data
+async function loadDropdownData() {
     try {
-        console.log('Initializing foreign key dropdowns for learning/training page...');
+        console.log('Loading dropdown data for learning page...');
         
-        // Populate certification dropdown with custom formatter
-        await populateReferenceDropdown('certification_id', 'certification', (data, id) => {
-            return `${data.name || 'Unknown Certification'} - ${data.description || 'No Description'}`;
-        });
+        // Load certifications
+        const certSelect = document.getElementById('certification_id');
+        if (certSelect) {
+            const certSnapshot = await getDocs(collection(db, "certification"));
+            certSnapshot.forEach((doc) => {
+                const data = doc.data();
+                const option = document.createElement('option');
+                option.value = doc.id;
+                option.textContent = data.name || data.certification_name || doc.id;
+                certSelect.appendChild(option);
+            });
+        }
         
-        // Populate farmer dropdown with custom formatter
-        await populateReferenceDropdown('farmer_id', 'farmer', (data, id) => {
-            return `${data.name || data.F_Name || 'Unknown Farmer'} - ${data.location || data.County || 'Unknown Location'}`;
-        });
+        // Load farmers
+        const farmerSelect = document.getElementById('farmer_id');
+        if (farmerSelect) {
+            const farmerSnapshot = await getDocs(collection(db, "farmer"));
+            farmerSnapshot.forEach((doc) => {
+                const data = doc.data();
+                const option = document.createElement('option');
+                option.value = doc.id;
+                option.textContent = data.name || data.F_Name || doc.id;
+                farmerSelect.appendChild(option);
+            });
+        }
         
-        // Populate trainer dropdown with users who have trainer role
-        await populateReferenceDropdown('trainer_id', 'users', (data, id) => {
-            return `${data.F_Name || data.name || data.email || 'Unknown'} ${data.Role ? `(${data.Role})` : ''}`;
-        });
+        // Load users as trainers
+        const trainerSelect = document.getElementById('trainer_id');
+        if (trainerSelect) {
+            const userSnapshot = await getDocs(collection(db, "users"));
+            userSnapshot.forEach((doc) => {
+                const data = doc.data();
+                const option = document.createElement('option');
+                option.value = doc.id;
+                option.textContent = data.F_Name || data.name || data.email || doc.id;
+                trainerSelect.appendChild(option);
+            });
+        }
         
-        console.log('Foreign key dropdowns initialized successfully for learning/training page');
+        console.log('Dropdown data loaded successfully');
     } catch (error) {
-        console.error('Error initializing foreign key dropdowns:', error);
+        console.error('Error loading dropdown data:', error);
+        logError('learning', 'Error loading dropdown data', { error: error.message });
     }
 }

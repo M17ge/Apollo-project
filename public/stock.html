@@ -52,6 +52,27 @@
         
         <button type="submit" id="submitProduct">Add Product</button>
     </form>
+
+    <!-- Manual Stock Adjustment Form -->
+    <div class="manual-stock-adjustment">
+        <h3>Manual Stock Adjustment</h3>
+        <form id="stockAdjustmentForm">
+            <label for="adjustProductId">Select Product:</label>
+            <select id="adjustProductId" required>
+                <option value="">Select a product</option>
+                <!-- Will be populated by JavaScript -->
+            </select>
+            
+            <label for="adjustQuantity">Quantity to Reduce:</label>
+            <input type="number" id="adjustQuantity" min="1" required placeholder="Enter quantity to reduce">
+            
+            <label for="adjustReason">Reason:</label>
+            <input type="text" id="adjustReason" placeholder="Order, damage, sale, etc." required>
+            
+            <button type="submit">Reduce Stock</button>
+        </form>
+    </div>
+
     <h3>Available Products</h3>
     <table id="availableProductsTable">
         <thead>

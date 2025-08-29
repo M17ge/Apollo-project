@@ -130,7 +130,8 @@ async function addUser(email, password, additionalData) {
             ID_NUMBER: additionalData.shortDescription,
             County: additionalData.county,
             location: additionalData.location,
-            Role: additionalData.userRole,
+            role: additionalData.userRole, // Changed from Role to role (lowercase)
+            userRole: additionalData.userRole, // For FlutterFlow compatibility
             approved: additionalData.approved,
             Created_Time: new Date()
         };
@@ -148,6 +149,13 @@ async function addUser(email, password, additionalData) {
         // Store the user information in the appropriate collection in Firestore
         try {
             await setDoc(doc(db, collectionName, user.uid), userData);
+            
+            // Try to set custom claims for FlutterFlow role-based routing
+            await setUserCustomClaims(user.uid, {
+                role: additionalData.userRole,
+                userRole: additionalData.userRole,
+                collection: collectionName
+            });
             
             // Log the user creation in Firestore
             await logCreate(collectionName, user.uid, userData);
@@ -168,7 +176,7 @@ async function addUser(email, password, additionalData) {
             // Clear the form fields after submission
             document.getElementById('addUserForm').reset();
             
-            alert(`User ${additionalData.displayName} created successfully!`);
+            alert(`User ${additionalData.displayName} created successfully!\n\nNote: If using FlutterFlow role-based routing, the user may need to log out and log back in for custom claims to take effect.`);
         } catch (e) {
             const msg = e && e.message ? e.message : String(e);
             console.error("Error storing user information in Firestore:", e.code || '', msg);
@@ -218,7 +226,8 @@ async function loadUserForEdit(userId, collectionName) {
             document.getElementById('newCounty').value = userData.County || '';
             document.getElementById('newLocation').value = userData.location || '';
             document.getElementById('newApproved').checked = userData.approved || false;
-            document.getElementById('newUserRole').value = userData.Role || '';
+            // Check both role and Role for backwards compatibility
+            document.getElementById('newUserRole').value = userData.role || userData.Role || '';
             
             // Scroll to update form and highlight it
             document.getElementById('updateUserForm').scrollIntoView({ behavior: 'smooth' });
@@ -247,7 +256,7 @@ async function updateUser(userId, collectionName, updatedData) {
             County: updatedData.county,
             location: updatedData.location,
             approved: updatedData.approved,
-            Role: updatedData.userRole
+            role: updatedData.userRole // Changed from Role to role (lowercase)
         };
         
         // Add farm size if provided
@@ -430,8 +439,8 @@ function addUserToTable(tableBody, userId, userData, collectionName) {
     // Insert approved status
     row.insertCell(9).textContent = userData.approved ? 'Yes' : 'No';
     
-    // Insert role
-    row.insertCell(10).textContent = userData.Role || '';
+    // Insert role - check both role and Role for backwards compatibility
+    row.insertCell(10).textContent = userData.role || userData.Role || '';
     
     // Add edit and delete buttons
     const actionsCell = row.insertCell(11);
@@ -738,4 +747,497 @@ async function testAllCollections() {
     resultsDiv.appendChild(adviceDiv);
     
     return results;
+}
+
+// Function to migrate existing user data to ensure consistent role fields
+async function migrateUserRoleFields() {
+    const collections = ['users', 'farmers'];
+    let totalUpdated = 0;
+    
+    // Role mapping to ensure proper capitalization
+    const roleMapping = {
+        'admin': 'Administrator',
+        'Admin': 'Administrator',
+        'administrator': 'Administrator',
+        'Administrator': 'Administrator',
+        'dispatch_manager': 'Dispatch Manager',
+        'Dispatch_Manager': 'Dispatch Manager',
+        'dispatch manager': 'Dispatch Manager',
+        'Dispatch Manager': 'Dispatch Manager',
+        'inventory_manager': 'Inventory Manager',
+        'Inventory_Manager': 'Inventory Manager',
+        'inventory manager': 'Inventory Manager',
+        'Inventory Manager': 'Inventory Manager',
+        'finance_manager': 'Finance Manager',
+        'Finance_Manager': 'Finance Manager',
+        'finance manager': 'Finance Manager',
+        'Finance Manager': 'Finance Manager',
+        'driver': 'Driver',
+        'Driver': 'Driver',
+        'trainer': 'Trainer',
+        'Trainer': 'Trainer',
+        'supplier': 'Supplier',
+        'Supplier': 'Supplier',
+        'farmer': 'Farmer',
+        'Farmer': 'Farmer'
+    };
+    
+    console.log('🔄 Starting user role field migration...');
+    
+    for (const collectionName of collections) {
+        try {
+            console.log(`📋 Processing ${collectionName} collection...`);
+            const snapshot = await getDocs(collection(db, collectionName));
+            
+            for (const docSnap of snapshot.docs) {
+                const userData = docSnap.data();
+                const userId = docSnap.id;
+                let needsUpdate = false;
+                const updates = {};
+                
+                // Get the current role value (from either field)
+                const currentRole = userData.role || userData.Role;
+                
+                // Normalize the role using the mapping
+                const normalizedRole = roleMapping[currentRole] || currentRole;
+                
+                // Check if user needs role field updates
+                if (currentRole && normalizedRole !== userData.role) {
+                    updates.role = normalizedRole;
+                    needsUpdate = true;
+                    console.log(`📝 Updating 'role' field for user ${userId}: ${currentRole} -> ${normalizedRole}`);
+                }
+                
+                // Ensure userRole field exists with proper capitalization
+                if (!userData.userRole || userData.userRole !== normalizedRole) {
+                    updates.userRole = normalizedRole;
+                    needsUpdate = true;
+                    console.log(`📝 Adding/updating 'userRole' field for user ${userId}: ${normalizedRole}`);
+                }
+                
+                // Keep uppercase Role field for backwards compatibility
+                if (currentRole && normalizedRole !== userData.Role) {
+                    updates.Role = normalizedRole;
+                    needsUpdate = true;
+                }
+                
+                // Apply updates if needed
+                if (needsUpdate) {
+                    try {
+                        await updateDoc(doc(db, collectionName, userId), updates);
+                        totalUpdated++;
+                        console.log(`✅ Updated user ${userId} in ${collectionName}`);
+                    } catch (error) {
+                        console.error(`❌ Failed to update user ${userId}:`, error);
+                    }
+                }
+            }
+            
+        } catch (error) {
+            console.error(`❌ Error processing ${collectionName}:`, error);
+        }
+    }
+    
+    console.log(`🎉 Migration complete! Updated ${totalUpdated} user documents.`);
+    alert(`Migration complete! Updated role fields for ${totalUpdated} users.\n\nAll roles now have proper capitalization:\n• "Dispatch Manager" (not "Dispatch_Manager")\n• "Inventory Manager" (not "Inventory_Manager")\n• "Administrator" (not "Admin")\n\nThis ensures compatibility with FlutterFlow role-based routing.`);
+    
+    // Refresh the user list to show updated data
+    fetchUsers();
+}
+
+// Add migration button to the page
+document.addEventListener('DOMContentLoaded', () => {
+    // Add migration button after the main content loads
+    setTimeout(() => {
+        const mainDiv = document.getElementById('main');
+        if (mainDiv) {
+            const migrationButton = document.createElement('button');
+            migrationButton.textContent = '🔄 Migrate User Role Fields';
+            migrationButton.className = 'migration-button';
+            migrationButton.style.cssText = `
+                background: #4CAF50; 
+                color: white; 
+                padding: 10px 20px; 
+                border: none; 
+                border-radius: 5px; 
+                cursor: pointer; 
+                margin: 10px 0;
+                font-weight: bold;
+            `;
+            migrationButton.onclick = migrateUserRoleFields;
+            
+            // Add diagnostic button
+            const diagnosticButton = document.createElement('button');
+            diagnosticButton.textContent = '🔍 Check User Role Fields';
+            diagnosticButton.className = 'diagnostic-button';
+            diagnosticButton.style.cssText = `
+                background: #2196F3; 
+                color: white; 
+                padding: 10px 20px; 
+                border: none; 
+                border-radius: 5px; 
+                cursor: pointer; 
+                margin: 10px 5px;
+                font-weight: bold;
+            `;
+            diagnosticButton.onclick = async () => {
+                const userId = prompt('Enter User ID to check (e.g., ZBjvuk702CXSix2rbeeeUpmD1vy2):');
+                if (userId) {
+                    await checkUserRoleFields(userId);
+                }
+            };
+            
+            // Add FlutterFlow custom claims migration button
+            const flutterFlowButton = document.createElement('button');
+            flutterFlowButton.textContent = '🦋 FlutterFlow Role Migration';
+            flutterFlowButton.className = 'flutterflow-button';
+            flutterFlowButton.style.cssText = `
+                background: #6B46C1; 
+                color: white; 
+                padding: 10px 20px; 
+                border: none; 
+                border-radius: 5px; 
+                cursor: pointer; 
+                margin: 10px 5px;
+                font-weight: bold;
+            `;
+            flutterFlowButton.onclick = migrateUserRoleFieldsWithClaims;
+            
+            // Add Cloud Function helper button
+            const cloudFunctionButton = document.createElement('button');
+            cloudFunctionButton.textContent = '☁️ Show Cloud Function Code';
+            cloudFunctionButton.className = 'cloud-function-button';
+            cloudFunctionButton.style.cssText = `
+                background: #FF9800; 
+                color: white; 
+                padding: 10px 20px; 
+                border: none; 
+                border-radius: 5px; 
+                cursor: pointer; 
+                margin: 10px 5px;
+                font-weight: bold;
+            `;
+            cloudFunctionButton.onclick = showCloudFunctionCode;
+            
+            // Insert after the welcome message
+            const welcomeH2 = mainDiv.querySelector('h2');
+            if (welcomeH2) {
+                welcomeH2.insertAdjacentElement('afterend', migrationButton);
+                migrationButton.insertAdjacentElement('afterend', diagnosticButton);
+                diagnosticButton.insertAdjacentElement('afterend', flutterFlowButton);
+                flutterFlowButton.insertAdjacentElement('afterend', cloudFunctionButton);
+            }
+        }
+    }, 1000);
+});
+
+// Function to check a specific user's role field structure
+async function checkUserRoleFields(userId) {
+    const collections = ['users', 'farmers'];
+    let found = false;
+    
+    // Expected role formats for FlutterFlow
+    const expectedRoles = [
+        'Administrator',
+        'Finance Manager',
+        'Dispatch Manager', 
+        'Driver',
+        'Inventory Manager',
+        'Trainer',
+        'Supplier',
+        'Farmer'
+    ];
+    
+    console.log(`🔍 Checking user ${userId} role fields...`);
+    
+    for (const collectionName of collections) {
+        try {
+            const userDoc = await getDoc(doc(db, collectionName, userId));
+            if (userDoc.exists()) {
+                found = true;
+                const userData = userDoc.data();
+                
+                console.log(`📋 Found user in ${collectionName} collection:`);
+                console.log('📊 Role field analysis:', {
+                    'role (lowercase)': userData.role || 'NOT SET',
+                    'Role (uppercase)': userData.Role || 'NOT SET', 
+                    'userRole': userData.userRole || 'NOT SET',
+                    'email': userData.email,
+                    'F_Name': userData.F_Name
+                });
+                
+                let status = `User: ${userData.F_Name || userData.email}\n`;
+                status += `Collection: ${collectionName}\n\n`;
+                status += `Role Fields:\n`;
+                status += `• role (lowercase): ${userData.role || 'NOT SET'}\n`;
+                status += `• Role (uppercase): ${userData.Role || 'NOT SET'}\n`;
+                status += `• userRole: ${userData.userRole || 'NOT SET'}\n\n`;
+                
+                // Check capitalization
+                const currentRole = userData.role || userData.Role;
+                const hasCorrectCapitalization = expectedRoles.includes(currentRole);
+                
+                status += `Capitalization Check:\n`;
+                status += `• Current role: "${currentRole}"\n`;
+                status += `• Expected formats: ${expectedRoles.join(', ')}\n`;
+                status += `• Correct capitalization: ${hasCorrectCapitalization ? '✅ YES' : '❌ NO'}\n\n`;
+                
+                if (userData.role && userData.userRole && hasCorrectCapitalization) {
+                    status += `✅ User has correct role fields for FlutterFlow routing`;
+                } else if (userData.Role && !userData.role) {
+                    status += `⚠️ User has old Role field. Run migration to fix.`;
+                } else if (!hasCorrectCapitalization) {
+                    status += `⚠️ Role has incorrect capitalization. Run migration to fix.`;
+                } else {
+                    status += `❌ User missing required role fields. Update user data.`;
+                }
+                
+                alert(status);
+                break;
+            }
+        } catch (error) {
+            console.error(`Error checking ${collectionName}:`, error);
+        }
+    }
+    
+    if (!found) {
+        alert(`❌ User ${userId} not found in either users or farmers collection.`);
+    }
+}
+
+// Function to set custom claims (requires Firebase Admin SDK or Cloud Functions)
+async function setUserCustomClaims(uid, claims) {
+    try {
+        // This is a client-side workaround since we can't directly set custom claims
+        // We'll create a document in a special collection that can be processed by a Cloud Function
+        await setDoc(doc(db, 'customClaimRequests', uid), {
+            uid: uid,
+            claims: claims,
+            timestamp: new Date(),
+            processed: false
+        });
+        
+        console.log(`📝 Custom claim request created for user ${uid}:`, claims);
+        
+        // Note: You would need a Cloud Function to actually set the custom claims
+        return true;
+    } catch (error) {
+        console.error('❌ Error creating custom claim request:', error);
+        return false;
+    }
+}
+
+// Enhanced migration function that also handles custom claims
+async function migrateUserRoleFieldsWithClaims() {
+    const collections = ['users', 'farmers'];
+    let totalUpdated = 0;
+    
+    // Role mapping to ensure proper capitalization
+    const roleMapping = {
+        'admin': 'Administrator',
+        'Admin': 'Administrator',
+        'administrator': 'Administrator',
+        'Administrator': 'Administrator',
+        'dispatch_manager': 'Dispatch Manager',
+        'Dispatch_Manager': 'Dispatch Manager',
+        'dispatch manager': 'Dispatch Manager',
+        'Dispatch Manager': 'Dispatch Manager',
+        'inventory_manager': 'Inventory Manager',
+        'Inventory_Manager': 'Inventory Manager',
+        'inventory manager': 'Inventory Manager',
+        'Inventory Manager': 'Inventory Manager',
+        'finance_manager': 'Finance Manager',
+        'Finance_Manager': 'Finance Manager',
+        'finance manager': 'Finance Manager',
+        'Finance Manager': 'Finance Manager',
+        'driver': 'Driver',
+        'Driver': 'Driver',
+        'trainer': 'Trainer',
+        'Trainer': 'Trainer',
+        'supplier': 'Supplier',
+        'Supplier': 'Supplier',
+        'farmer': 'Farmer',
+        'Farmer': 'Farmer'
+    };
+    
+    console.log('🔄 Starting user role field migration with custom claims...');
+    
+    for (const collectionName of collections) {
+        try {
+            console.log(`📋 Processing ${collectionName} collection...`);
+            const snapshot = await getDocs(collection(db, collectionName));
+            
+            for (const docSnap of snapshot.docs) {
+                const userData = docSnap.data();
+                const userId = docSnap.id;
+                let needsUpdate = false;
+                const updates = {};
+                
+                // Get the current role value (from either field)
+                const currentRole = userData.role || userData.Role;
+                
+                // Normalize the role using the mapping
+                const normalizedRole = roleMapping[currentRole] || currentRole;
+                
+                if (normalizedRole) {
+                    // Update Firestore document
+                    updates.role = normalizedRole;
+                    updates.userRole = normalizedRole;
+                    updates.Role = normalizedRole; // backwards compatibility
+                    needsUpdate = true;
+                    
+                    // Create custom claims request
+                    await setUserCustomClaims(userId, {
+                        role: normalizedRole,
+                        userRole: normalizedRole,
+                        collection: collectionName
+                    });
+                }
+                
+                // Apply updates if needed
+                if (needsUpdate) {
+                    try {
+                        await updateDoc(doc(db, collectionName, userId), updates);
+                        totalUpdated++;
+                        console.log(`✅ Updated user ${userId} in ${collectionName} with role: ${normalizedRole}`);
+                    } catch (error) {
+                        console.error(`❌ Failed to update user ${userId}:`, error);
+                    }
+                }
+            }
+            
+        } catch (error) {
+            console.error(`❌ Error processing ${collectionName}:`, error);
+        }
+    }
+    
+    console.log(`🎉 Migration complete! Updated ${totalUpdated} user documents.`);
+    
+    const message = `Migration complete! Updated role fields for ${totalUpdated} users.\n\n` +
+        `✅ Updated Firestore collections with proper role fields\n` +
+        `✅ Created custom claim requests for Firebase Auth users\n\n` +
+        `⚠️ IMPORTANT: For FlutterFlow role-based routing to work, you need to:\n` +
+        `1. Deploy a Cloud Function to process custom claims\n` +
+        `2. Have users log out and log back in\n\n` +
+        `Would you like me to show you the Cloud Function code needed?`;
+    
+    alert(message);
+    
+    // Refresh the user list to show updated data
+    fetchUsers();
+}
+
+// Function to show the Cloud Function code needed for custom claims
+function showCloudFunctionCode() {
+    const cloudFunctionCode = `
+// Firebase Cloud Function to set custom claims based on Firestore data
+// Deploy this to Firebase Functions to enable FlutterFlow role-based routing
+
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+
+admin.initializeApp();
+
+// Trigger when customClaimRequests documents are created
+exports.processCustomClaims = functions.firestore
+    .document('customClaimRequests/{userId}')
+    .onCreate(async (snap, context) => {
+        const data = snap.data();
+        const userId = context.params.userId;
+        
+        try {
+            // Set custom claims on the user
+            await admin.auth().setCustomUserClaims(userId, data.claims);
+            
+            console.log(\`Custom claims set for user \${userId}:\`, data.claims);
+            
+            // Mark as processed
+            await snap.ref.update({ processed: true });
+            
+        } catch (error) {
+            console.error('Error setting custom claims:', error);
+            await snap.ref.update({ 
+                processed: false, 
+                error: error.message 
+            });
+        }
+    });
+
+// Alternative: Manual trigger function
+exports.setUserRole = functions.https.onCall(async (data, context) => {
+    // Ensure the user is authenticated
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 
+            'The function must be called by an authenticated user.');
+    }
+    
+    const { userId, role } = data;
+    
+    if (!userId || !role) {
+        throw new functions.https.HttpsError('invalid-argument', 
+            'userId and role are required.');
+    }
+    
+    try {
+        // Set custom claims
+        await admin.auth().setCustomUserClaims(userId, {
+            role: role,
+            userRole: role
+        });
+        
+        return { success: true, message: \`Role \${role} set for user \${userId}\` };
+    } catch (error) {
+        console.error('Error setting custom claims:', error);
+        throw new functions.https.HttpsError('internal', error.message);
+    }
+});
+
+// Deploy with: firebase deploy --only functions
+    `;
+    
+    // Create a modal or new window to display the code
+    const codeWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+    codeWindow.document.write(`
+        <html>
+            <head>
+                <title>Cloud Function Code for Custom Claims</title>
+                <style>
+                    body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+                    pre { background: #2d2d30; padding: 20px; border-radius: 5px; overflow: auto; }
+                    h1 { color: #569cd6; }
+                    .steps { background: #252526; padding: 15px; border-radius: 5px; margin: 10px 0; }
+                    .command { background: #0d1117; color: #58a6ff; padding: 5px; border-radius: 3px; }
+                </style>
+            </head>
+            <body>
+                <h1>Firebase Cloud Function for Custom Claims</h1>
+                
+                <div class="steps">
+                    <h2>📋 Setup Instructions:</h2>
+                    <ol>
+                        <li>Install Firebase CLI: <span class="command">npm install -g firebase-tools</span></li>
+                        <li>Initialize functions: <span class="command">firebase init functions</span></li>
+                        <li>Add this code to <strong>functions/index.js</strong></li>
+                        <li>Deploy: <span class="command">firebase deploy --only functions</span></li>
+                        <li>Run FlutterFlow migration to create custom claim requests</li>
+                        <li>Users need to log out and back in for claims to take effect</li>
+                    </ol>
+                </div>
+                
+                <h2>📄 Cloud Function Code:</h2>
+                <pre>${cloudFunctionCode}</pre>
+                
+                <div class="steps">
+                    <h2>🎯 Alternative: Use FlutterFlow's Built-in User Documents</h2>
+                    <p>Instead of custom claims, you can:</p>
+                    <ol>
+                        <li>Create a user document with the same UID as the authenticated user</li>
+                        <li>Store role information in that document</li>
+                        <li>Use Firestore rules to ensure users can only access their own data</li>
+                        <li>In FlutterFlow, query the user document based on the authenticated user's UID</li>
+                    </ol>
+                </div>
+            </body>
+        </html>
+    `);
 }

@@ -1,15 +1,16 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
-import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
-// Import database utilities for foreign key management
 import { 
-    initializeDatabase, 
-    validateDocumentReferences, 
-    populateReferenceDropdown, 
-    DISPLAY_FORMATTERS 
-} from './database-utils.js';
+    getFirestore, 
+    collection, 
+    addDoc, 
+    getDocs, 
+    doc, 
+    getDoc, 
+    updateDoc, 
+    deleteDoc, 
+    serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -24,30 +25,25 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Initialize database utilities
-initializeDatabase(db);
-
 document.addEventListener('DOMContentLoaded', () => {
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            console.log("User is logged in:", user);
-            initializeForms();
-            fetchProducts();
-        } else {
-            console.log("No user is logged in");
-            // Redirect to login page
-            window.location.href = "login.html";
-        }
-    });
+    console.log("Stock management system starting...");
+    
+    try {
+        logActivity('stock_init', 'stock_system', null, { action: 'stock_system_initialized' });
+    } catch (error) {
+        console.warn('Logging failed:', error);
+    }
+    
+    initializeForms();
+    fetchProducts();
 });
 
 function initializeForms() {
-    // Populate inventory dropdown with foreign key relationship
-    populateReferenceDropdown('inventory_id', 'inventory', 'id', DISPLAY_FORMATTERS.inventory);
+    // Load dropdown data
+    loadInventoryDropdown();
+    loadProductDropdown();
 
     // Product form submission
     document.getElementById('productForm').addEventListener('submit', async (e) => {
@@ -79,11 +75,9 @@ function initializeForms() {
             productData.inventory_id = inventoryId;
         }
 
-        // Validate foreign key relationships
-        const validation = await validateDocumentReferences('products', productData);
-        
-        if (!validation.valid) {
-            alert('Validation errors:\n' + validation.errors.join('\n'));
+        // Basic validation
+        if (!productName || !category || !price || !quantity) {
+            alert('Please fill in all required fields');
             return;
         }
 
@@ -96,19 +90,27 @@ function initializeForms() {
                 const oldData = oldDataSnap.exists() ? oldDataSnap.data() : null;
                 
                 // Update existing product
-                await updateDoc(productRef, validation.validatedData);
+                await updateDoc(productRef, productData);
                 
                 // Log the update
-                await logUpdate('products', productId, validation.validatedData, oldData);
+                try {
+                    logUpdate('products', productId, productData, oldData);
+                } catch (logError) {
+                    console.warn('Logging failed:', logError);
+                }
                 
                 console.log("Product updated with ID: ", productId);
                 alert("Product updated successfully!");
             } else {
                 // Create a new product document
-                const productDocRef = await addDoc(collection(db, 'products'), validation.validatedData);
+                const productDocRef = await addDoc(collection(db, 'products'), productData);
                 
                 // Log the creation
-                await logCreate('products', productDocRef.id, validation.validatedData);
+                try {
+                    logCreate('products', productDocRef.id, productData);
+                } catch (logError) {
+                    console.warn('Logging failed:', logError);
+                }
                 
                 console.log("Product added with ID: ", productDocRef.id);
                 alert("Product added successfully!");
@@ -126,14 +128,100 @@ function initializeForms() {
             console.error("Error with product: ", e.code || '', msg);
             
             // Log the error
-            await logError('products', "Failed to save product", {
-                name: name,
-                error: msg
-            });
+            try {
+                logError('stock_system', 'Failed to save product', { name: productName, error: msg });
+            } catch (logError) {
+                console.warn('Error logging failed:', logError);
+            }
             
             alert(`An error occurred: ${msg}`);
         }
     });
+
+    // Manual stock adjustment form submission
+    document.getElementById('stockAdjustmentForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const productId = document.getElementById('adjustProductId').value;
+        const quantity = parseInt(document.getElementById('adjustQuantity').value);
+        const reason = document.getElementById('adjustReason').value;
+        
+        if (!productId || !quantity || quantity <= 0 || !reason) {
+            alert('Please fill in all fields with valid values');
+            return;
+        }
+        
+        try {
+            const result = await reduceStockQuantity(productId, quantity);
+            alert(`Stock reduced successfully!\n${result.productName}: ${result.previousQuantity} → ${result.newQuantity}\nReason: ${reason}`);
+            
+            // Reset form
+            document.getElementById('stockAdjustmentForm').reset();
+            
+            // Refresh product dropdown
+            loadProductDropdown();
+            
+        } catch (error) {
+            alert(`Error reducing stock: ${error.message}`);
+        }
+    });
+}
+
+// Load inventory dropdown data
+async function loadInventoryDropdown() {
+    try {
+        const inventorySelect = document.getElementById('inventory_id');
+        if (!inventorySelect) return;
+        
+        // Clear existing options except the first one
+        while (inventorySelect.options.length > 1) {
+            inventorySelect.remove(1);
+        }
+        
+        const querySnapshot = await getDocs(collection(db, "inventory"));
+        
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const option = document.createElement('option');
+            option.value = doc.id;
+            option.textContent = `${doc.id} - ${data.Description || 'No description'}`;
+            inventorySelect.appendChild(option);
+        });
+        
+    } catch (error) {
+        console.error("Error loading inventory dropdown:", error);
+        try {
+            logError('stock_system', 'Error loading inventory dropdown', { error: error.message });
+        } catch (logError) {
+            console.warn('Error logging failed:', logError);
+        }
+    }
+}
+
+// Load product dropdown for stock adjustment
+async function loadProductDropdown() {
+    try {
+        const productSelect = document.getElementById('adjustProductId');
+        if (!productSelect) return;
+        
+        // Clear existing options except the first one
+        while (productSelect.options.length > 1) {
+            productSelect.remove(1);
+        }
+        
+        const querySnapshot = await getDocs(collection(db, "products"));
+        
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const option = document.createElement('option');
+            option.value = doc.id;
+            option.textContent = `${data.name || 'Unnamed'} (Stock: ${data.quantity || 0})`;
+            productSelect.appendChild(option);
+        });
+        
+    } catch (error) {
+        console.error("Error loading product dropdown:", error);
+    }
 }
 
 // This function is deprecated - using the new logging.js module instead
@@ -194,6 +282,10 @@ async function fetchProducts() {
                 outOfStockTableBody.appendChild(row);
             }
         });
+        
+        // Also refresh the product dropdown for stock adjustments
+        loadProductDropdown();
+        
     } catch (e) {
         console.error("Error fetching products data: ", e.code, e.message);
         alert(`An error occurred while fetching products data: ${e.message}`);
@@ -256,16 +348,120 @@ async function deleteProduct(productId) {
             console.error("Error deleting product: ", e.code || '', msg);
             
             // Log the error
-            await logError('products', "Failed to delete product", {
-                productId,
-                error: msg
-            });
+            try {
+                logError('stock_system', 'Failed to delete product', { productId, error: msg });
+            } catch (logError) {
+                console.warn('Error logging failed:', logError);
+            }
             
             alert(`An error occurred while deleting the product: ${msg}`);
         }
     }
 }
 
+// Function to reduce stock quantity when order is placed
+async function reduceStockQuantity(productId, orderQuantity) {
+    try {
+        const productRef = doc(db, "products", productId);
+        const productSnap = await getDoc(productRef);
+        
+        if (!productSnap.exists()) {
+            throw new Error(`Product with ID ${productId} not found`);
+        }
+        
+        const productData = productSnap.data();
+        const currentQuantity = productData.quantity || 0;
+        
+        if (currentQuantity < orderQuantity) {
+            throw new Error(`Insufficient stock. Available: ${currentQuantity}, Requested: ${orderQuantity}`);
+        }
+        
+        const newQuantity = currentQuantity - orderQuantity;
+        
+        await updateDoc(productRef, {
+            quantity: newQuantity,
+            last_updated: serverTimestamp()
+        });
+        
+        // Log the stock reduction
+        try {
+            logUpdate('products', productId, 
+                { quantity: newQuantity, action: 'stock_reduced', order_quantity: orderQuantity },
+                { quantity: currentQuantity }
+            );
+        } catch (logError) {
+            console.warn('Logging failed:', logError);
+        }
+        
+        console.log(`Stock reduced for product ${productId}: ${currentQuantity} -> ${newQuantity}`);
+        
+        // Refresh the products display
+        fetchProducts();
+        
+        return {
+            success: true,
+            previousQuantity: currentQuantity,
+            newQuantity: newQuantity,
+            productName: productData.name
+        };
+        
+    } catch (error) {
+        console.error("Error reducing stock quantity:", error);
+        
+        try {
+            logError('stock_system', 'Failed to reduce stock quantity', { 
+                productId, 
+                orderQuantity, 
+                error: error.message 
+            });
+        } catch (logError) {
+            console.warn('Error logging failed:', logError);
+        }
+        
+        throw error;
+    }
+}
+
+// Function to process multiple product orders and reduce stock
+async function processOrderStockReduction(orderData) {
+    try {
+        const results = [];
+        const productIds = Array.isArray(orderData.product_id) ? orderData.product_id : [orderData.product_id];
+        const quantities = Array.isArray(orderData.quantity) ? orderData.quantity : [orderData.quantity];
+        
+        if (productIds.length !== quantities.length) {
+            throw new Error('Product IDs and quantities arrays must have the same length');
+        }
+        
+        // Process each product in the order
+        for (let i = 0; i < productIds.length; i++) {
+            const productId = productIds[i];
+            const quantity = parseInt(quantities[i]) || 0;
+            
+            if (quantity > 0) {
+                const result = await reduceStockQuantity(productId, quantity);
+                results.push({
+                    productId,
+                    quantity,
+                    ...result
+                });
+            }
+        }
+        
+        return {
+            success: true,
+            results: results,
+            totalProductsProcessed: results.length
+        };
+        
+    } catch (error) {
+        console.error("Error processing order stock reduction:", error);
+        throw error;
+    }
+}
+
 // Make functions available globally for onclick handlers
 window.editProduct = editProduct;
 window.deleteProduct = deleteProduct;
+window.reduceStockQuantity = reduceStockQuantity;
+window.processOrderStockReduction = processOrderStockReduction;

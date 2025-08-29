@@ -4,14 +4,6 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 // Import logging functions
 import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
-// Import database utilities for foreign key management
-import { 
-    initializeDatabase, 
-    validateDocumentReferences, 
-    populateReferenceDropdown, 
-    checkForOrphanedReferences,
-    DISPLAY_FORMATTERS 
-} from './database-utils.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -29,9 +21,6 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
-
-// Initialize database utilities
-initializeDatabase(db);
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -79,8 +68,8 @@ async function logDatabaseActivity(action, collection, documentId, data) {
 }
 
 function initializeForms() {
-    // Populate supplier dropdown with foreign key relationship
-    populateReferenceDropdown('supplier', 'supplier', 'id', DISPLAY_FORMATTERS.supplier);
+    // Populate supplier dropdown - simplified version
+    fetchSupplierData();
 
     // Inventory form submission
     document.getElementById('inventoryForm').addEventListener('submit', async (e) => {
@@ -97,7 +86,7 @@ function initializeForms() {
         const supplier_id = document.getElementById('supplier').value;
         const inventoryId = document.getElementById('inventoryId').value;
         
-        // Create inventory object with foreign key validation
+        // Create inventory object - simplified
         const inventoryData = {
             Description: description,
             Time_of_Arrival: serverTimestamp(),
@@ -107,14 +96,6 @@ function initializeForms() {
             manager_id: document.getElementById('managerID')?.value || window.currentUserId || auth.currentUser?.uid || 'unknown'
         };
 
-        // Validate foreign key relationships
-        const validation = await validateDocumentReferences('inventory', inventoryData);
-        
-        if (!validation.valid) {
-            alert('Validation errors:\n' + validation.errors.join('\n'));
-            return;
-        }
-        
         try {
             let docRef;
             
@@ -125,10 +106,10 @@ function initializeForms() {
                 const oldData = docSnap.exists() ? docSnap.data() : null;
                 
                 // Update existing document
-                await updateDoc(doc(db, "inventory", inventoryId), validation.validatedData);
+                await updateDoc(doc(db, "inventory", inventoryId), inventoryData);
                 
                 // Log the update with our new logging module
-                await logUpdate('inventory', inventoryId, validation.validatedData, oldData);
+                await logUpdate('inventory', inventoryId, inventoryData, oldData);
                 
                 alert("Inventory updated successfully!");
                 // Reset form state for new submissions
@@ -219,9 +200,81 @@ function initializeForms() {
         }
     });
 
+    // Inventory Request form submission
+    document.getElementById('inventoryRequestForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const requestId = document.getElementById('requestId').value;
+        const inventory_id = document.getElementById('requestInventoryId').value;
+        const product_id = document.getElementById('requestProductIds').value.split(',').map(item => item.trim());
+        const quantity = document.getElementById('requestQuantities').value.split(',').map(item => parseFloat(item.trim()));
+        const supplier_id = document.getElementById('requestSupplierId').value;
+        const total_price = parseFloat(document.getElementById('requestTotalPrice').value);
+        const suppliercontact = document.getElementById('requestSupplierContact').value;
+        const address = document.getElementById('requestAddress').value;
+        const ETA = document.getElementById('requestETA').value;
+        
+        // Basic validation
+        if (product_id.length !== quantity.length) {
+            alert('Number of products must match number of quantities');
+            return;
+        }
+        
+        // Create request data matching your inventory_requests schema
+        const requestData = {
+            inventory_id,
+            product_id,
+            quantity,
+            supplier_id,
+            request_id: `REQ-${Date.now()}`, // Generate unique request ID
+            total_price,
+            suppliercontact,
+            address,
+            ETA,
+            approved: null, // Initially pending
+            created_at: serverTimestamp(),
+            created_by: window.currentUserId || auth.currentUser?.uid || 'unknown'
+        };
+
+        try {
+            let docRef;
+            
+            if (requestId) {
+                // Update existing request
+                const docSnap = await getDoc(doc(db, "inventory_requests", requestId));
+                const oldData = docSnap.exists() ? docSnap.data() : null;
+                
+                await updateDoc(doc(db, "inventory_requests", requestId), requestData);
+                await logUpdate('inventory_requests', requestId, requestData, oldData);
+                
+                alert("Inventory request updated successfully!");
+                document.getElementById('submitInventoryRequest').textContent = 'Send Request to Supplier';
+            } else {
+                // Create new request
+                docRef = await addDoc(collection(db, "inventory_requests"), requestData);
+                await logCreate('inventory_requests', docRef.id, requestData);
+                
+                alert("Inventory request sent to supplier successfully!");
+            }
+            
+            // Reset form
+            document.getElementById('inventoryRequestForm').reset();
+            document.getElementById('requestId').value = '';
+            
+            // Refresh the requests table
+            fetchInventoryRequestsData();
+            
+        } catch (error) {
+            const msg = error && error.message ? error.message : String(error);
+            console.error("Error saving inventory request: ", error.code || '', msg);
+            alert(`An error occurred while saving the request: ${msg}`);
+        }
+    });
+
     // Call the fetch functions to display data
     fetchInventoryData();
     fetchSupplierData();
+    fetchInventoryRequestsData();
 }
 
 // Define the fetchInventoryData function
@@ -352,10 +405,104 @@ async function fetchSupplierData() {
             actionsCell.appendChild(document.createTextNode(' '));
             actionsCell.appendChild(deleteBtn);
         });
+        
+        // Also populate the inventory request supplier dropdown
+        const requestSupplierSelect = document.getElementById('requestSupplierId');
+        if (requestSupplierSelect) {
+            // Clear existing options except the first one
+            while (requestSupplierSelect.options.length > 1) {
+                requestSupplierSelect.remove(1);
+            }
+            
+            // Add suppliers to request form dropdown
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const option = document.createElement('option');
+                option.value = doc.id;
+                option.textContent = data.supplierName || doc.id;
+                requestSupplierSelect.appendChild(option);
+            });
+        }
     } catch (error) {
         const msg = error && error.message ? error.message : String(error);
         console.error("Error fetching suppliers: ", error.code || '', msg);
         alert(`An error occurred while fetching suppliers: ${msg}`);
+    }
+}
+
+// Fetch and display inventory requests
+async function fetchInventoryRequestsData() {
+    try {
+        const requestTableBody = document.getElementById('inventoryRequestsTable').getElementsByTagName('tbody')[0];
+        requestTableBody.innerHTML = '';
+        
+        const querySnapshot = await getDocs(collection(db, "inventory_requests"));
+        
+        if (querySnapshot.empty) {
+            requestTableBody.innerHTML = '<tr><td colspan="9">No inventory requests found</td></tr>';
+            return;
+        }
+        
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const row = requestTableBody.insertRow();
+            
+            row.insertCell(0).textContent = data.request_id || doc.id;
+            row.insertCell(1).textContent = data.inventory_id || '';
+            
+            // Format product_id array
+            let productIds = '';
+            if (data.product_id && Array.isArray(data.product_id)) {
+                productIds = data.product_id.join(', ');
+            } else if (data.product_id) {
+                productIds = String(data.product_id);
+            }
+            row.insertCell(2).textContent = productIds;
+            
+            // Format quantity array
+            let quantities = '';
+            if (data.quantity && Array.isArray(data.quantity)) {
+                quantities = data.quantity.join(', ');
+            } else if (data.quantity) {
+                quantities = String(data.quantity);
+            }
+            row.insertCell(3).textContent = quantities;
+            
+            row.insertCell(4).textContent = data.supplier_id || '';
+            row.insertCell(5).textContent = data.total_price ? `$${data.total_price.toFixed(2)}` : '';
+            
+            // Status based on approved field
+            let status = 'Pending';
+            if (data.approved === true) {
+                status = 'Approved';
+            } else if (data.approved === false) {
+                status = 'Rejected';
+            }
+            row.insertCell(6).textContent = status;
+            
+            row.insertCell(7).textContent = data.ETA || '';
+            
+            // Add action buttons
+            const actionsCell = row.insertCell(8);
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+            editBtn.className = 'btn btn-primary btn-sm mr-1';
+            editBtn.onclick = () => editInventoryRequest(doc.id, data);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.className = 'btn btn-danger btn-sm';
+            deleteBtn.onclick = () => deleteInventoryRequest(doc.id);
+            
+            actionsCell.appendChild(editBtn);
+            actionsCell.appendChild(document.createTextNode(' '));
+            actionsCell.appendChild(deleteBtn);
+        });
+        
+    } catch (error) {
+        const msg = error && error.message ? error.message : String(error);
+        console.error("Error fetching inventory requests: ", error.code || '', msg);
+        alert(`An error occurred while fetching requests: ${msg}`);
     }
 }
 
@@ -464,6 +611,64 @@ async function deleteSupplier(id) {
             const msg = error && error.message ? error.message : String(error);
             console.error("Error deleting supplier: ", error.code || '', msg);
             alert(`An error occurred while deleting supplier: ${msg}`);
+        }
+    }
+}
+
+// Edit inventory request
+function editInventoryRequest(id, data) {
+    // Set form values for editing
+    document.getElementById('requestId').value = id;
+    document.getElementById('requestInventoryId').value = data.inventory_id || '';
+    
+    // Handle product_id array
+    if (data.product_id && Array.isArray(data.product_id)) {
+        document.getElementById('requestProductIds').value = data.product_id.join(', ');
+    } else if (data.product_id) {
+        document.getElementById('requestProductIds').value = data.product_id;
+    }
+    
+    // Handle quantity array
+    if (data.quantity && Array.isArray(data.quantity)) {
+        document.getElementById('requestQuantities').value = data.quantity.join(', ');
+    } else if (data.quantity) {
+        document.getElementById('requestQuantities').value = data.quantity;
+    }
+    
+    document.getElementById('requestSupplierId').value = data.supplier_id || '';
+    document.getElementById('requestTotalPrice').value = data.total_price || '';
+    document.getElementById('requestSupplierContact').value = data.suppliercontact || '';
+    document.getElementById('requestAddress').value = data.address || '';
+    document.getElementById('requestETA').value = data.ETA || '';
+    
+    // Change button text to indicate update
+    document.getElementById('submitInventoryRequest').textContent = 'Update Request';
+    
+    // Scroll to form
+    document.getElementById('inventoryRequestForm').scrollIntoView();
+}
+
+// Delete inventory request
+async function deleteInventoryRequest(id) {
+    if (confirm('Are you sure you want to delete this inventory request?')) {
+        try {
+            // Get the data that will be deleted for logging
+            const docRef = doc(db, "inventory_requests", id);
+            const docSnap = await getDoc(docRef);
+            const deletedData = docSnap.exists() ? docSnap.data() : null;
+            
+            // Delete the document
+            await deleteDoc(docRef);
+            
+            // Log the deletion
+            await logDelete('inventory_requests', id, deletedData);
+            
+            alert('Inventory request deleted successfully');
+            fetchInventoryRequestsData(); // Refresh the table
+        } catch (error) {
+            const msg = error && error.message ? error.message : String(error);
+            console.error("Error deleting inventory request: ", error.code || '', msg);
+            alert(`An error occurred while deleting request: ${msg}`);
         }
     }
 }

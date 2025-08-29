@@ -41,6 +41,64 @@
             <button type="submit" id="submitInventory">Add Inventory</button>
         </form>
     </div>
+
+    <!-- Inventory Request Form -->
+    <div id="inventoryRequestFormContainer">
+        <h2>Request Inventory from Suppliers</h2>
+        <form id="inventoryRequestForm">
+            <input type="hidden" id="requestId" name="requestId">
+            
+            <label for="requestInventoryId">Inventory ID:</label>
+            <input type="text" id="requestInventoryId" name="requestInventoryId" required placeholder="Enter inventory identifier">
+            
+            <label for="requestProductIds">Product IDs (comma separated):</label>
+            <textarea id="requestProductIds" name="requestProductIds" required placeholder="Enter product IDs, separated by commas"></textarea>
+            
+            <label for="requestQuantities">Quantities (comma separated):</label>
+            <textarea id="requestQuantities" name="requestQuantities" required placeholder="Enter quantities matching the product order"></textarea>
+            
+            <label for="requestSupplierId">Supplier ID:</label>
+            <select id="requestSupplierId" name="requestSupplierId" required>
+                <option value="">Select a supplier</option>
+                <!-- Will be populated dynamically -->
+            </select>
+            
+            <label for="requestTotalPrice">Total Price:</label>
+            <input type="number" id="requestTotalPrice" name="requestTotalPrice" step="0.01" required>
+            
+            <label for="requestSupplierContact">Supplier Contact:</label>
+            <input type="text" id="requestSupplierContact" name="requestSupplierContact" placeholder="Contact information">
+            
+            <label for="requestAddress">Delivery Address:</label>
+            <textarea id="requestAddress" name="requestAddress" placeholder="Enter delivery address"></textarea>
+            
+            <label for="requestETA">Expected ETA:</label>
+            <input type="date" id="requestETA" name="requestETA">
+            
+            <button type="submit" id="submitInventoryRequest">Send Request to Supplier</button>
+        </form>
+    </div>
+    
+    <h2>Inventory Requests</h2>
+    <table id="inventoryRequestsTable">
+        <thead>
+            <tr>
+                <th>Request ID</th>
+                <th>Inventory ID</th>
+                <th>Product IDs</th>
+                <th>Quantities</th>
+                <th>Supplier ID</th>
+                <th>Total Price</th>
+                <th>Status</th>
+                <th>ETA</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Request data will be populated here -->
+        </tbody>
+    </table>
+
     <h2>Inventory Table</h2>
     <table id="inventoryTable">
  <thead>

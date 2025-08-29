@@ -1,6 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import { logAuth, logError, logActivity } from './logging.js';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -37,14 +36,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const user = userCredential.user;
                 console.log('User signed in:', user);
                 
-                // Special redirect for ash@dmin.com to reports.html
-                if (user.email === "ash@dmin.com") {
-                    console.log('Special user ash@dmin.com detected - redirecting to reports.html');
-                    window.location.href = 'reports.html';
-                } else {
-                    // Default redirect to landing.html for all other users
-                    window.location.href = 'Landing.html';
-                }
+                // Redirect all users to landing page
+                window.location.href = 'Landing.html';
             })
             .catch((error) => {
                 const errorCode = error.code;

@@ -1,16 +1,18 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
-// Import logging functions
-import { logCreate, logUpdate, logDelete, logActivity, logError } from './logging.js';
-// Import database utilities for foreign key management
 import { 
-    initializeDatabase, 
-    validateDocumentReferences, 
-    populateReferenceDropdown, 
-    DISPLAY_FORMATTERS 
-} from './database-utils.js';
+    getFirestore, 
+    collection, 
+    addDoc, 
+    getDocs, 
+    updateDoc, 
+    deleteDoc, 
+    doc, 
+    getDoc,
+    query,
+    where,
+    orderBy
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { logActivity, logCreate, logUpdate, logError } from './logging.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -25,240 +27,314 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Initialize database utilities
-initializeDatabase(db);
-
-document.addEventListener('DOMContentLoaded', async () => {
-    // Skip authentication for testing - directly initialize
-    console.log("Initializing supplier portal...");
-    
-    // Initialize foreign key dropdowns
-    await initializeForeignKeyDropdowns();
-    
-    await fetchInventoryRequests();
-
-    const fulfillmentForm = document.getElementById('fulfillmentForm');
-    if (fulfillmentForm) {
-        fulfillmentForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            // Get form values
-            const requestId = document.getElementById('requestId').value;
-            const inventory_id = document.getElementById('inventory_id').value;
-            const supplier_response = document.getElementById('supplier_response').value;
-            const fulfillment_status = document.getElementById('fulfillment_status').value;
-            const notes = document.getElementById('notes').value;
-            
-            // Call the handleFulfillmentSubmit function
-            await handleFulfillmentSubmit(requestId, inventory_id, supplier_response, fulfillment_status, notes);
-            
-            // Reset form and state
-            e.target.reset();
-            const submitButton = document.getElementById('submitFulfillment');
-            if (submitButton) {
-                submitButton.textContent = 'Submit Response';
-            }
-        });
-    }
-
-    // Log page access
+// Load pending inventory requests
+async function loadInventoryRequests() {
     try {
-        await logActivity('supplier_page_loaded', 'Supplier portal accessed', 'test_supplier_id');
-        console.log("Apollo logging system activated - Supplier Portal");
-    } catch (error) {
-        console.error('Logging error:', error);
-    }
-});
-
-// Fetch and display inventory requests
-async function fetchInventoryRequests() {
-    try {
-        const querySnapshot = await getDocs(collection(db, "inventory"));
-        const tableBody = document.getElementById('inventoryRequestsTable');
+        console.log("Loading inventory requests...");
+        
+        // Simple logging without potential undefined values
+        try {
+            logActivity('loading_requests', 'inventory_requests', null, { action: 'load_inventory_requests' });
+        } catch (logError) {
+            console.warn('Logging failed:', logError);
+        }
+        
+        // Load all inventory requests - filter by approved status
+        const querySnapshot = await getDocs(collection(db, "inventory_requests"));
+        const tableBody = document.querySelector('#inventoryRequestsTable tbody');
+        const requestSelect = document.getElementById('requestSelect');
         
         if (!tableBody) {
-            console.error('Table body not found');
-            return;
-        }
-
-        const tbody = tableBody.getElementsByTagName('tbody')[0];
-        if (!tbody) {
-            console.error('Table tbody not found');
+            console.error("Table body not found");
             return;
         }
         
-        // Clear existing data
-        tbody.innerHTML = '';
-
-        for (const docSnap of querySnapshot.docs) {
-            const inventory = docSnap.data();
-            const row = document.createElement('tr');
+        tableBody.innerHTML = '';
+        requestSelect.innerHTML = '<option value="">Select a request to fulfill</option>';
+        
+        if (querySnapshot.empty) {
+            tableBody.innerHTML = '<tr><td colspan="8">No requests found</td></tr>';
+            return;
+        }
+        
+        querySnapshot.forEach((docSnapshot) => {
+            const request = docSnapshot.data();
+            const row = tableBody.insertRow();
             
-            // Format created_at timestamp if it exists
-            let createdAtDisplay = '';
-            if (inventory.created_at && inventory.created_at.toDate) {
-                createdAtDisplay = inventory.created_at.toDate().toLocaleString();
-            } else if (inventory.created_at) {
-                createdAtDisplay = new Date(inventory.created_at).toLocaleString();
+            // Format products list from product_id array
+            let productsText = 'N/A';
+            if (request.product_id && Array.isArray(request.product_id)) {
+                productsText = request.product_id.join(', ');
+            } else if (request.product_id) {
+                productsText = String(request.product_id);
             }
             
-            // Get display names for foreign keys
-            let supplierName = inventory.supplier_id || '';
-            let managerName = inventory.approval_manager || '';
-            
-            try {
-                if (DISPLAY_FORMATTERS && DISPLAY_FORMATTERS.supplier_id) {
-                    supplierName = await DISPLAY_FORMATTERS.supplier_id(inventory.supplier_id);
-                }
-                if (DISPLAY_FORMATTERS && DISPLAY_FORMATTERS.approval_manager) {
-                    managerName = await DISPLAY_FORMATTERS.approval_manager(inventory.approval_manager);
-                }
-            } catch (error) {
-                console.error('Error formatting display names:', error);
+            // Format quantities from quantity array
+            let quantityText = 'N/A';
+            if (request.quantity && Array.isArray(request.quantity)) {
+                quantityText = request.quantity.join(', ');
+            } else if (request.quantity) {
+                quantityText = String(request.quantity);
             }
             
-            // Create row HTML
+            // Combine products and quantities for display
+            if (request.product_id && request.quantity && 
+                Array.isArray(request.product_id) && Array.isArray(request.quantity) &&
+                request.product_id.length === request.quantity.length) {
+                productsText = request.product_id.map((product, index) => 
+                    `${product} (${request.quantity[index]})`
+                ).join(', ');
+            }
+            
+            // Status based on approved field
+            let status = 'pending';
+            let statusClass = 'pending';
+            if (request.approved === true) {
+                status = 'approved';
+                statusClass = 'approved';
+            } else if (request.approved === false) {
+                status = 'rejected';
+                statusClass = 'rejected';
+            }
+            
             row.innerHTML = `
-                <td>${docSnap.id}</td>
-                <td>${inventory.name || ''}</td>
-                <td>${inventory.quantity || ''}</td>
-                <td>${supplierName}</td>
-                <td>${managerName}</td>
-                <td>${createdAtDisplay}</td>
-                <td><span class="status ${inventory.status || 'pending'}">${inventory.status || 'Pending'}</span></td>
+                <td>${request.request_id || docSnapshot.id}</td>
+                <td>${request.inventory_id || 'N/A'}</td>
+                <td>${productsText}</td>
+                <td>$${request.total_price || '0.00'}</td>
+                <td>${request.supplier_id || 'N/A'}</td>
+                <td>${request.ETA || 'N/A'}</td>
+                <td><span class="status-badge status-${statusClass}">${status}</span></td>
                 <td>
-                    <button onclick="respondToRequest('${docSnap.id}')">Respond</button>
+                    <button onclick="selectRequestForFulfillment('${docSnapshot.id}')">Fulfill</button>
                 </td>
             `;
             
-            tbody.appendChild(row);
-        }
-    } catch (error) {
-        const msg = error && error.message ? error.message : String(error);
-        console.error("Error fetching inventory requests: ", error.code || '', msg);
-        alert(`An error occurred while fetching inventory requests: ${msg}`);
-    }
-}
-
-// Handle fulfillment submission
-async function handleFulfillmentSubmit(requestId, inventory_id, supplier_response, fulfillment_status, notes) {
-    try {
-        // Create the fulfillment data object
-        const fulfillmentData = {
-            inventory_id: inventory_id,
-            supplier_response: supplier_response,
-            fulfillment_status: fulfillment_status,
-            notes: notes,
-            response_date: serverTimestamp()
-        };
-
-        // Validate foreign key relationships
-        const validation = await validateDocumentReferences('inventory_fulfillment', fulfillmentData);
-        
-        if (!validation.valid) {
-            alert('Validation errors:\n' + validation.errors.join('\n'));
-            return;
-        }
-        
-        if (requestId) {
-            // Update existing request
-            const requestRef = doc(db, "inventory", requestId);
-            const docSnap = await getDoc(requestRef);
-            const oldData = docSnap.exists() ? docSnap.data() : null;
-            
-            // Update the inventory request with supplier response
-            const updateData = {
-                supplier_response: supplier_response,
-                status: fulfillment_status,
-                response_date: serverTimestamp(),
-                notes: notes
-            };
-            
-            await updateDoc(requestRef, updateData);
-            
-            // Log the update
-            await logUpdate('inventory', requestId, updateData, oldData);
-            
-            alert("Response submitted successfully!");
-        } else {
-            // Create new fulfillment record
-            const docRef = await addDoc(collection(db, "inventory_fulfillment"), validation.validatedData);
-            
-            // Log the creation
-            await logCreate('inventory_fulfillment', docRef.id, validation.validatedData);
-            
-            alert("Fulfillment record created successfully!");
-        }
-        
-        await fetchInventoryRequests();
-    } catch (error) {
-        const msg = error && error.message ? error.message : String(error);
-        console.error("Error handling fulfillment: ", error.code || '', msg);
-        
-        // Log the error
-        await logError('supplier_fulfillment', "Failed to handle fulfillment", { 
-            requestId, 
-            error: msg
+            // Add to select dropdown
+            const option = document.createElement('option');
+            option.value = docSnapshot.id;
+            option.textContent = `${request.request_id || docSnapshot.id} - ${request.inventory_id || 'Request'}`;
+            requestSelect.appendChild(option);
         });
         
-        alert(`An error occurred while handling fulfillment: ${msg}`);
+        console.log("Inventory requests loaded successfully");
+        
+    } catch (error) {
+        console.error("Error loading inventory requests:", error);
+        
+        // Simple error logging
+        try {
+            logError('supplier_system', 'Error loading inventory requests', { error: error.message });
+        } catch (logError) {
+            console.warn('Error logging failed:', logError);
+        }
+        
+        const tableBody = document.querySelector('#inventoryRequestsTable tbody');
+        if (tableBody) {
+            tableBody.innerHTML = `<tr><td colspan="8">Error loading requests: ${error.message}</td></tr>`;
+        }
     }
 }
 
-// Respond to request - populate form
-async function respondToRequest(requestId) {
+// Select a request for fulfillment
+window.selectRequestForFulfillment = async function(requestId) {
     try {
-        const requestRef = doc(db, "inventory", requestId);
-        const requestSnap = await getDoc(requestRef);
-        
-        if (requestSnap.exists()) {
-            const requestData = requestSnap.data();
+        const requestDoc = await getDoc(doc(db, "inventory_requests", requestId));
+        if (requestDoc.exists()) {
+            const request = requestDoc.data();
             
-            // Populate form with request data
-            const requestIdInput = document.getElementById('requestId');
-            const inventoryIdInput = document.getElementById('inventory_id');
-            const supplierResponseInput = document.getElementById('supplier_response');
-            const submitButton = document.getElementById('submitFulfillment');
+            // Fill form
+            document.getElementById('requestId').value = requestId;
+            document.getElementById('requestSelect').value = requestId;
             
-            if (requestIdInput) requestIdInput.value = requestId;
-            if (inventoryIdInput) inventoryIdInput.value = requestId; // Use the same ID
-            if (supplierResponseInput) supplierResponseInput.focus();
-            if (submitButton) submitButton.textContent = 'Submit Response';
+            // Pre-fill some fields based on the request
+            if (request.quantity && Array.isArray(request.quantity) && request.quantity.length > 0) {
+                const totalQuantity = request.quantity.reduce((sum, qty) => sum + (parseFloat(qty) || 0), 0);
+                document.getElementById('availableQuantity').value = totalQuantity;
+            }
+            
+            if (request.total_price) {
+                document.getElementById('quotedPrice').value = request.total_price;
+            }
+            
+            if (request.ETA) {
+                document.getElementById('estimatedDelivery').value = request.ETA;
+            }
             
             // Scroll to form
-            const fulfillmentForm = document.getElementById('fulfillmentForm');
-            if (fulfillmentForm) {
-                fulfillmentForm.scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('fulfillmentForm').scrollIntoView({ behavior: 'smooth' });
+            
+            // Simple logging
+            try {
+                logActivity('select_request', 'inventory_requests', requestId, { action: 'selected_for_fulfillment' });
+            } catch (logError) {
+                console.warn('Logging failed:', logError);
             }
-        } else {
-            console.error("Request not found");
-            alert("Request not found");
         }
     } catch (error) {
-        const msg = error && error.message ? error.message : String(error);
-        console.error("Error getting request: ", error.code || '', msg);
-        alert(`An error occurred while getting request data: ${msg}`);
-    }
-}
-
-// Make functions available globally for onclick handlers
-window.respondToRequest = respondToRequest;
-
-// Initialize foreign key dropdowns
-async function initializeForeignKeyDropdowns() {
-    try {
-        console.log('Initializing supplier page dropdowns...');
+        console.error("Error selecting request:", error);
         
-        // Populate inventory dropdown with improved formatter
-        await populateReferenceDropdown('inventory_id', 'inventory', 'id', DISPLAY_FORMATTERS.inventory);
-        console.log('Inventory dropdown populated');
+        // Simple error logging
+        try {
+            logError('supplier_system', 'Error selecting request', { requestId, error: error.message });
+        } catch (logError) {
+            console.warn('Error logging failed:', logError);
+        }
+        
+        alert("Error selecting request: " + error.message);
+    }
+};
+
+// Submit fulfillment response
+async function submitFulfillmentResponse(requestId, response, availableQuantity, quotedPrice, estimatedDelivery, notes) {
+    try {
+        console.log("Submitting fulfillment response...");
+        
+        // Simple logging
+        try {
+            logActivity('submit_response', 'inventory_requests', requestId, { response: response });
+        } catch (logError) {
+            console.warn('Logging failed:', logError);
+        }
+        
+        // Update the inventory request with supplier response
+        const updateData = {
+            suppliercontact: notes || '', // Using notes as supplier contact info
+            ETA: estimatedDelivery || '',
+            total_price: quotedPrice || 0
+        };
+        
+        // Set approved status based on response
+        if (response === 'accepted') {
+            updateData.approved = true;
+        } else if (response === 'rejected') {
+            updateData.approved = false;
+        } else if (response === 'partial') {
+            updateData.approved = true; // Partial acceptance still approved
+        }
+        
+        // Update quantities if provided
+        if (availableQuantity && availableQuantity > 0) {
+            // If it's a single quantity, update the quantity array
+            updateData.quantity = [availableQuantity];
+        }
+        
+        await updateDoc(doc(db, "inventory_requests", requestId), updateData);
+        
+        // Simple logging
+        try {
+            logUpdate('inventory_requests', requestId, updateData, null);
+        } catch (logError) {
+            console.warn('Logging failed:', logError);
+        }
+        
+        alert("Response submitted successfully!");
+        
+        // Reload requests
+        await loadInventoryRequests();
+        
+        return true;
         
     } catch (error) {
-        console.error('Error initializing foreign key dropdowns:', error);
-        alert('Error loading dropdown data. Please refresh the page.');
+        console.error("Error submitting fulfillment response:", error);
+        
+        // Simple error logging
+        try {
+            logError('supplier_system', 'Error submitting fulfillment response', { requestId, error: error.message });
+        } catch (logError) {
+            console.warn('Error logging failed:', logError);
+        }
+        
+        alert("Error submitting response: " + error.message);
+        return false;
     }
 }
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log("Supplier system starting...");
+    
+    // Simple logging
+    try {
+        logActivity('init_supplier', 'supplier_system', null, { action: 'portal_initialized' });
+    } catch (logError) {
+        console.warn('Logging failed:', logError);
+    }
+    
+    try {
+        // Load inventory requests
+        await loadInventoryRequests();
+        
+        // Handle fulfillment form submission
+        const fulfillmentForm = document.getElementById('fulfillmentForm');
+        if (fulfillmentForm) {
+            fulfillmentForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const requestId = document.getElementById('requestId').value || document.getElementById('requestSelect').value;
+                const response = document.getElementById('supplierResponse').value;
+                const availableQuantity = parseInt(document.getElementById('availableQuantity').value) || 0;
+                const quotedPrice = parseFloat(document.getElementById('quotedPrice').value) || 0;
+                const estimatedDelivery = document.getElementById('estimatedDelivery').value;
+                const notes = document.getElementById('supplierNotes').value;
+                
+                // Basic validation
+                if (!requestId) {
+                    alert('Please select a request to fulfill');
+                    return;
+                }
+                
+                if (!response) {
+                    alert('Please select a response type');
+                    return;
+                }
+                
+                if (response !== 'rejected' && (!availableQuantity || availableQuantity <= 0)) {
+                    alert('Please enter available quantity for accepted/partial requests');
+                    return;
+                }
+                
+                if (response !== 'rejected' && (!quotedPrice || quotedPrice <= 0)) {
+                    alert('Please enter quoted price for accepted/partial requests');
+                    return;
+                }
+                
+                const success = await submitFulfillmentResponse(
+                    requestId, response, availableQuantity, quotedPrice, estimatedDelivery, notes
+                );
+                
+                if (success) {
+                    // Reset form
+                    fulfillmentForm.reset();
+                    document.getElementById('requestId').value = '';
+                }
+            });
+        }
+        
+        // Handle request selection
+        const requestSelect = document.getElementById('requestSelect');
+        if (requestSelect) {
+            requestSelect.addEventListener('change', (e) => {
+                if (e.target.value) {
+                    document.getElementById('requestId').value = e.target.value;
+                }
+            });
+        }
+        
+        console.log("Supplier system initialized successfully");
+        
+    } catch (error) {
+        console.error("Error initializing supplier system:", error);
+        
+        // Simple error logging
+        try {
+            logError('supplier_system', 'Error initializing supplier system', { error: error.message });
+        } catch (logError) {
+            console.warn('Error logging failed:', logError);
+        }
+        
+        alert("Error initializing supplier system: " + error.message);
+    }
+});
