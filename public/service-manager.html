@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Manager - Course Booking Mapper</title>
+    <script type="module" src="service-manager.js" defer></script>
+    <link rel="stylesheet" href="service-manager.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <a href="Landing.html" class="back-icon" title="Back to Landing Page">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+    
+    <div id="main">
+        <h1>Service Manager - Course Booking Mapper</h1>
+        <p>Map course booking requests from farmers to available trainers</p>
+
+        <!-- Filters Section -->
+        <div class="filters-section">
+            <h2>Filters</h2>
+            <div class="filter-controls">
+                <label for="statusFilter">Status:</label>
+                <select id="statusFilter">
+                    <option value="all">All Requests</option>
+                    <option value="pending" selected>Pending Only</option>
+                    <option value="confirmed">Confirmed Only</option>
+                </select>
+                
+                <label for="certificationFilter">Certification:</label>
+                <select id="certificationFilter">
+                    <option value="all">All Certifications</option>
+                </select>
+                
+                <button id="refreshButton" class="action-button">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Pending Booking Requests Table -->
+        <div class="section">
+            <h2>Course Booking Requests</h2>
+            <div id="requestsTableContainer">
+                <table id="requestsTable">
+                    <thead>
+                        <tr>
+                            <th>Request ID</th>
+                            <th>Farmer Name</th>
+                            <th>Farmer Contact</th>
+                            <th>Certification</th>
+                            <th>Expected Start</th>
+                            <th>Location</th>
+                            <th>Current Trainer</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Booking requests will be populated here -->
+                    </tbody>
+                </table>
+                <div id="noRequestsMessage" style="display:none; text-align:center; padding: 20px; color: #666;">
+                    No booking requests found
+                </div>
+            </div>
+        </div>
+
+        <!-- Assign Trainer Modal -->
+        <div id="assignTrainerModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Assign Trainer to Booking Request</h2>
+                
+                <div class="booking-details">
+                    <h3>Booking Details</h3>
+                    <p><strong>Farmer:</strong> <span id="modal-farmer-name"></span></p>
+                    <p><strong>Certification:</strong> <span id="modal-certification"></span></p>
+                    <p><strong>Expected Start:</strong> <span id="modal-start-time"></span></p>
+                    <p><strong>Location:</strong> <span id="modal-location"></span></p>
+                </div>
+                
+                <form id="assignTrainerForm">
+                    <input type="hidden" id="modal-booking-id">
+                    
+                    <label for="modal-trainer-select">Select Trainer:</label>
+                    <select id="modal-trainer-select" required>
+                        <option value="">-- Select a Trainer --</option>
+                    </select>
+                    
+                    <div class="trainer-info" id="trainer-info" style="display:none;">
+                        <h4>Trainer Information</h4>
+                        <p><strong>Name:</strong> <span id="trainer-display-name"></span></p>
+                        <p><strong>Phone:</strong> <span id="trainer-phone"></span></p>
+                        <p><strong>Location:</strong> <span id="trainer-location"></span></p>
+                    </div>
+                    
+                    <label for="modal-training-location">Training Location:</label>
+                    <input type="text" id="modal-training-location" placeholder="Enter or confirm training location">
+                    
+                    <label for="modal-expected-start">Expected Start Time:</label>
+                    <input type="datetime-local" id="modal-expected-start" required>
+                    
+                    <label for="modal-notes">Notes (Optional):</label>
+                    <textarea id="modal-notes" rows="3" placeholder="Add any notes about this booking..."></textarea>
+                    
+                    <div class="modal-buttons">
+                        <button type="submit" class="confirm-button">
+                            <i class="fas fa-check"></i> Assign Trainer
+                        </button>
+                        <button type="button" class="cancel-button" id="cancelAssign">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Statistics Section -->
+        <div class="stats-section">
+            <h2>Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-pending">0</h3>
+                        <p>Pending Requests</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-confirmed">0</h3>
+                        <p>Confirmed Bookings</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-trainers">0</h3>
+                        <p>Available Trainers</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-certificate"></i></div>
+                    <div class="stat-info">
+                        <h3 id="stat-certifications">0</h3>
+                        <p>Certifications</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
